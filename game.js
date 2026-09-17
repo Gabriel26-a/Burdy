@@ -260,15 +260,47 @@ startCamera();
    TAKE PHOTO
 ========================= */
 
+async function waitForVideoReady(timeoutMs = 4000) {
+    const startTime = Date.now();
+
+    while (
+        Date.now() - startTime < timeoutMs &&
+        (!camera.videoWidth || !camera.videoHeight)
+    ) {
+        await new Promise(function(resolve) {
+            window.setTimeout(resolve, 100);
+        });
+    }
+
+    return Boolean(
+        camera.videoWidth &&
+        camera.videoHeight
+    );
+}
+
 async function takePhoto() {
-    if (!stream || !camera.videoWidth || !camera.videoHeight) {
+    // If the stream is not ready, start/request it now.
+    if (
+        !stream ||
+        !camera.videoWidth ||
+        !camera.videoHeight
+    ) {
         cameraError.textContent = "Starting camera...";
 
         const ready = await startCamera();
 
-        if (!ready || !camera.videoWidth || !camera.videoHeight) {
+        if (!ready) {
             return;
         }
+    }
+
+    // Wait for actual video frames/dimensions on slower phones.
+    const videoReady = await waitForVideoReady();
+
+    if (!videoReady) {
+        cameraError.textContent =
+            "Camera is not ready yet. Please tap Take Photo again.";
+        return;
     }
 
     photoCanvas.width = camera.videoWidth;
@@ -300,41 +332,57 @@ async function takePhoto() {
     cameraError.textContent = "";
 
     if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
+        stream.getTracks().forEach(function(track) {
+            track.stop();
+        });
         stream = null;
     }
 }
 
-let takePhotoLocked = false;
+let takePhotoBusy = false;
+let lastTakePhotoActivation = 0;
 
 async function handleTakePhoto(event) {
-    event.preventDefault();
-    event.stopPropagation();
+    const now = Date.now();
 
-    if (takePhotoLocked) {
+    // Prevent duplicate pointer/touch/click activation.
+    if (now - lastTakePhotoActivation < 700) {
         return;
     }
 
-    takePhotoLocked = true;
+    if (takePhotoBusy) {
+        return;
+    }
+
+    lastTakePhotoActivation = now;
+    takePhotoBusy = true;
+
+    if (event) {
+        if (event.cancelable) {
+            event.preventDefault();
+        }
+        event.stopPropagation();
+    }
 
     try {
         await takePhoto();
     } finally {
-        window.setTimeout(function () {
-            takePhotoLocked = false;
-        }, 500);
+        takePhotoBusy = false;
     }
 }
 
-// Desktop / keyboard-generated click
-takePhotoButton.addEventListener("click", handleTakePhoto);
+// Primary handler for touch, pen, and mouse.
+takePhotoButton.addEventListener(
+    "pointerdown",
+    handleTakePhoto,
+    { passive: false }
+);
 
-// Mobile / touch-friendly pointer event
-takePhotoButton.addEventListener("pointerup", handleTakePhoto);
-
-// Older mobile browsers that still use touch events
-takePhotoButton.addEventListener("touchend", handleTakePhoto, { passive: false });
-
+// Keyboard activation / older browser fallback.
+takePhotoButton.addEventListener(
+    "click",
+    handleTakePhoto
+);
 
 /* =========================
    RETAKE PHOTO
