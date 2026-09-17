@@ -1,155 +1,19 @@
-/* =========================================================
-   FIREBASE
-========================================================= */
+const bird = document.getElementById("bird");
+const birdImage = document.getElementById("birdImage");
+const game = document.getElementById("game");
+const scoreDisplay = document.getElementById("score");
 
-import {
-    initializeApp
-} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+const camera = document.getElementById("camera");
+const photoCanvas = document.getElementById("photoCanvas");
+const takePhotoButton = document.getElementById("takePhotoButton");
+const retakeButton = document.getElementById("retakeButton");
+const photoPreview = document.getElementById("photoPreview");
+const nameSection = document.getElementById("nameSection");
+const playerNameInput = document.getElementById("playerName");
+const startButton = document.getElementById("startButton");
 
-import {
-    getDatabase,
-    ref,
-    push,
-    get,
-    query,
-    orderByChild,
-    limitToLast
-} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
-
-import {
-    getAuth,
-    signInAnonymously
-} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-
-
-/* =========================================================
-   FIREBASE CONFIG
-========================================================= */
-
-const firebaseConfig = {
-
-    apiKey:
-        "AIzaSyDQwrHSGzxEPGhbJhQP5Ij2YT1AKPEMXQk",
-
-    authDomain:
-        "burdy-3836e.firebaseapp.com",
-
-    databaseURL:
-        "https://burdy-3836e-default-rtdb.firebaseio.com/",
-
-    projectId:
-        "burdy-3836e",
-
-    storageBucket:
-        "burdy-3836e.firebasestorage.app",
-
-    messagingSenderId:
-        "666892581152",
-
-    appId:
-        "1:666892581152:web:87ba6d960e2ea408143f45"
-};
-
-
-/* =========================================================
-   INITIALIZE FIREBASE
-========================================================= */
-
-const firebaseApp =
-    initializeApp(firebaseConfig);
-
-const database =
-    getDatabase(firebaseApp);
-
-const auth =
-    getAuth(firebaseApp);
-
-
-/* =========================================================
-   ANONYMOUS LOGIN
-========================================================= */
-
-let authReady =
-    signInAnonymously(auth);
-
-authReady.catch(function(error) {
-
-    console.error(
-        "Firebase authentication error:",
-        error
-    );
-
-});
-
-
-async function ensureAuth() {
-
-    try {
-
-        await authReady;
-
-    } catch (error) {
-
-        console.error(
-            "Retrying Firebase authentication:",
-            error
-        );
-
-        authReady =
-            signInAnonymously(auth);
-
-        await authReady;
-
-    }
-
-}
-
-
-/* =========================================================
-   HTML ELEMENTS
-========================================================= */
-
-const bird =
-    document.getElementById("bird");
-
-const birdImage =
-    document.getElementById("birdImage");
-
-const game =
-    document.getElementById("game");
-
-const scoreDisplay =
-    document.getElementById("score");
-
-const camera =
-    document.getElementById("camera");
-
-const photoCanvas =
-    document.getElementById("photoCanvas");
-
-const takePhotoButton =
-    document.getElementById("takePhotoButton");
-
-const retakeButton =
-    document.getElementById("retakeButton");
-
-const photoPreview =
-    document.getElementById("photoPreview");
-
-const nameSection =
-    document.getElementById("nameSection");
-
-const playerNameInput =
-    document.getElementById("playerName");
-
-const startButton =
-    document.getElementById("startButton");
-
-const cameraScreen =
-    document.getElementById("cameraScreen");
-
-const cameraError =
-    document.getElementById("cameraError");
+const cameraScreen = document.getElementById("cameraScreen");
+const cameraError = document.getElementById("cameraError");
 
 const leaderboardScreen =
     document.getElementById("leaderboardScreen");
@@ -160,28 +24,23 @@ const leaderboardList =
 const backButton =
     document.getElementById("backButton");
 
-
-/* =========================================================
-   INITIAL STATE
-========================================================= */
-
+// Hide player character until game starts
 bird.style.display = "none";
 
 
-/* =========================================================
+/* =========================
    PLAYER DATA
-========================================================= */
+========================= */
 
 let playerName = "";
 let playerPhoto = "";
+
 let stream = null;
 
-let cameraStarting = false;
 
-
-/* =========================================================
+/* =========================
    GAME DATA
-========================================================= */
+========================= */
 
 let birdY = 300;
 let velocity = 0;
@@ -199,352 +58,49 @@ let pipes = [];
 let frameCount = 0;
 
 
-/* =========================================================
-   CAMERA ERROR MESSAGE
-========================================================= */
-
-function showCameraError(error) {
-
-    console.error("Camera error:", error);
-
-
-    if (
-        error &&
-        error.name === "NotAllowedError"
-    ) {
-
-        cameraError.textContent =
-            "Camera permission is blocked. Please allow camera access in your browser.";
-
-        return;
-
-    }
-
-
-    if (
-        error &&
-        error.name === "NotFoundError"
-    ) {
-
-        cameraError.textContent =
-            "No camera was found on this device.";
-
-        return;
-
-    }
-
-
-    if (
-        error &&
-        error.name === "NotReadableError"
-    ) {
-
-        cameraError.textContent =
-            "The camera is being used by another app.";
-
-        return;
-
-    }
-
-
-    if (
-        error &&
-        error.name === "SecurityError"
-    ) {
-
-        cameraError.textContent =
-            "Camera access was blocked by the browser.";
-
-        return;
-
-    }
-
-
-    cameraError.textContent =
-        "Unable to open the camera. Please allow camera access.";
-
-}
-
-
-/* =========================================================
+/* =========================
    CAMERA
-========================================================= */
+========================= */
 
 async function startCamera() {
 
-    if (cameraStarting) {
-        return false;
-    }
-
-
-    if (stream) {
-
-        if (
-            stream.getVideoTracks().some(
-                function(track) {
-
-                    return track.readyState === "live";
-
-                }
-            )
-        ) {
-
-            return true;
-
-        }
-
-    }
-
-
-    if (
-        !navigator.mediaDevices ||
-        !navigator.mediaDevices.getUserMedia
-    ) {
-
-        cameraError.textContent =
-            "Camera is not supported by this browser.";
-
-        return false;
-
-    }
-
-
-    cameraStarting = true;
-
-
     try {
 
-        /* =================================================
-           FIRST TRY: FRONT CAMERA
-        ================================================= */
+        stream =
+            await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: false
+            });
 
-        try {
-
-            stream =
-                await navigator
-                    .mediaDevices
-                    .getUserMedia({
-
-                        video: {
-                            facingMode: {
-                                ideal: "user"
-                            }
-                        },
-
-                        audio: false
-
-                    });
-
-        } catch (firstError) {
-
-            console.log(
-                "Front camera failed. Trying default camera..."
-            );
-
-
-            /* =================================================
-               FALLBACK: ANY CAMERA
-            ================================================= */
-
-            stream =
-                await navigator
-                    .mediaDevices
-                    .getUserMedia({
-
-                        video: true,
-
-                        audio: false
-
-                    });
-
-        }
-
-
-        camera.srcObject =
-            stream;
-
-
-        camera.muted =
-            true;
-
-
-        camera.autoplay =
-            true;
-
-
-        camera.playsInline =
-            true;
-
-
-        camera.setAttribute(
-            "playsinline",
-            ""
-        );
-
-
-        camera.setAttribute(
-            "webkit-playsinline",
-            ""
-        );
-
-
-        camera.style.transform =
-            "scaleX(1)";
-
-
-        camera.style.display =
-            "block";
-
-
-        /*
-            Wait for the camera to provide
-            actual video dimensions.
-        */
-
-        await new Promise(
-            function(resolve) {
-
-                if (
-                    camera.readyState >= 2 &&
-                    camera.videoWidth > 0
-                ) {
-
-                    resolve();
-
-                    return;
-
-                }
-
-
-                camera.onloadedmetadata =
-                    function() {
-
-                        resolve();
-
-                    };
-
-            }
-        );
-
-
-        try {
-
-            await camera.play();
-
-        } catch (playError) {
-
-            console.log(
-                "Camera play warning:",
-                playError
-            );
-
-        }
-
-
-        cameraStarting =
-            false;
-
-
-        cameraError.textContent =
-            "Camera ready!";
-
-
-        return true;
-
+        camera.srcObject = stream;
 
     } catch (error) {
 
-        cameraStarting =
-            false;
+        cameraError.textContent =
+            "Please allow camera access.";
 
-
-        stream =
-            null;
-
-
-        showCameraError(
-            error
-        );
-
-
-        return false;
-
+        console.error(error);
     }
-
 }
-
-
-/* =========================================================
-   START CAMERA
-========================================================= */
 
 startCamera();
 
 
-/* =========================================================
+/* =========================
    TAKE PHOTO
-========================================================= */
+========================= */
 
-async function takePhoto() {
+takePhotoButton.addEventListener("click", function () {
 
-    /*
-        If camera did not start yet,
-        try starting it after the user
-        presses the button.
-    */
-
-    if (
-        !stream ||
-        !camera.videoWidth ||
-        !camera.videoHeight
-    ) {
-
-        cameraError.textContent =
-            "Starting camera...";
-
-
-        const cameraStarted =
-            await startCamera();
-
-
-        /*
-            First tap only starts the camera
-            if it was not ready.
-        */
-
-        if (
-            !cameraStarted ||
-            !camera.videoWidth ||
-            !camera.videoHeight
-        ) {
-
-            return;
-
-        }
-
-
-        cameraError.textContent =
-            "Camera is ready. Tap TAKE PHOTO again.";
-
+    if (!camera.videoWidth) {
         return;
-
     }
 
-
-    /* =================================================
-       CAPTURE
-    ================================================= */
-
-    photoCanvas.width =
-        camera.videoWidth;
-
-    photoCanvas.height =
-        camera.videoHeight;
-
+    photoCanvas.width = camera.videoWidth;
+    photoCanvas.height = camera.videoHeight;
 
     const context =
         photoCanvas.getContext("2d");
-
 
     context.drawImage(
         camera,
@@ -554,343 +110,173 @@ async function takePhoto() {
         photoCanvas.height
     );
 
-
     playerPhoto =
-        photoCanvas.toDataURL(
-            "image/png"
-        );
+        photoCanvas.toDataURL("image/png");
+
+    photoPreview.src = playerPhoto;
+
+    photoPreview.style.display = "block";
+
+    camera.style.display = "none";
+
+    takePhotoButton.style.display = "none";
+
+    retakeButton.style.display = "block";
+
+    nameSection.style.display = "flex";
 
 
-    photoPreview.src =
-        playerPhoto;
-
-
-    photoPreview.style.display =
-        "block";
-
-
-    camera.style.display =
-        "none";
-
-
-    takePhotoButton.style.display =
-        "none";
-
-
-    retakeButton.style.display =
-        "block";
-
-
-    nameSection.style.display =
-        "flex";
-
-
-    cameraError.textContent =
-        "";
-
-
-    /* STOP CAMERA */
+    // Stop camera
 
     if (stream) {
 
-        stream
-            .getTracks()
-            .forEach(
-                function(track) {
-
-                    track.stop();
-
-                }
-            );
-
-
-        stream =
-            null;
+        stream.getTracks().forEach(track => {
+            track.stop();
+        });
 
     }
 
-}
+});
 
 
-/* =========================================================
-   TAKE PHOTO CLICK
-========================================================= */
-
-takePhotoButton.addEventListener(
-    "click",
-    async function(event) {
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
-        await takePhoto();
-
-    }
-);
-
-
-/* =========================================================
-   TAKE PHOTO MOBILE
-========================================================= */
-
-takePhotoButton.addEventListener(
-    "touchend",
-    async function(event) {
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
-        await takePhoto();
-
-    },
-    {
-        passive: false
-    }
-);
-
-
-/* =========================================================
+/* =========================
    RETAKE PHOTO
-========================================================= */
+========================= */
 
-async function retakePhoto() {
+retakeButton.addEventListener("click", function () {
 
-    photoPreview.style.display =
-        "none";
+    photoPreview.style.display = "none";
 
+    retakeButton.style.display = "none";
 
-    retakeButton.style.display =
-        "none";
+    nameSection.style.display = "none";
 
+    takePhotoButton.style.display = "block";
 
-    nameSection.style.display =
-        "none";
+    camera.style.display = "block";
 
+    startCamera();
 
-    takePhotoButton.style.display =
-        "block";
-
-
-    camera.style.display =
-        "block";
+});
 
 
-    cameraError.textContent =
-        "Starting camera...";
+/* =========================
+   START GAME
+========================= */
 
-
-    await startCamera();
-
-}
-
-
-retakeButton.addEventListener(
-    "click",
-    async function(event) {
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
-        await retakePhoto();
-
-    }
-);
-
-
-retakeButton.addEventListener(
-    "touchend",
-    async function(event) {
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
-        await retakePhoto();
-
-    },
-    {
-        passive: false
-    }
-);
-
-
-/* =========================================================
-   START PLAYER
-========================================================= */
-
-function startPlayerGame() {
+startButton.addEventListener("click", function () {
 
     playerName =
         playerNameInput.value.trim();
 
 
-    if (
-        playerName === ""
-    ) {
+    if (playerName === "") {
 
         cameraError.textContent =
             "Please enter your name.";
 
         return;
-
     }
 
 
-    if (
-        playerPhoto === ""
-    ) {
+    if (playerPhoto === "") {
 
         cameraError.textContent =
             "Please take your picture first.";
 
         return;
-
     }
 
 
-    birdImage.src =
-        playerPhoto;
+    // Put player's face on bird
+
+    birdImage.src = playerPhoto;
+
+    // Show player only when game starts
+    bird.style.display = "block";
+
+    // Hide camera screen
+    cameraScreen.style.display = "none";
 
 
-    birdImage.style.transform =
-        "scaleX(1)";
-
-
-    bird.style.display =
-        "block";
-
-
-    cameraScreen.style.display =
-        "none";
-
-
+    // Start game
     startGame();
 
-}
+});
 
 
-/* =========================================================
-   START BUTTON
-========================================================= */
-
-startButton.addEventListener(
-    "click",
-    function(event) {
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
-        startPlayerGame();
-
-    }
-);
-
-
-startButton.addEventListener(
-    "touchend",
-    function(event) {
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
-        startPlayerGame();
-
-    },
-    {
-        passive: false
-    }
-);
-
-
-/* =========================================================
+/* =========================
    JUMP
-========================================================= */
+========================= */
 
 function jump() {
 
-    if (
-        !gameStarted ||
-        gameOver
-    ) {
-
+    if (!gameStarted || gameOver) {
         return;
     }
 
-
-    velocity =
-        jumpStrength;
-
+    velocity = jumpStrength;
 }
 
 
-/* =========================================================
-   KEYBOARD
-========================================================= */
-
 document.addEventListener(
     "keydown",
-    function(event) {
+    function (event) {
 
-        if (
-            event.code === "Space"
-        ) {
+        if (event.code === "Space") {
 
             event.preventDefault();
 
             jump();
-
         }
 
     }
 );
 
-
-/* =========================================================
-   MOBILE / MOUSE TAP
-========================================================= */
 
 game.addEventListener(
-    "pointerdown",
-    function(event) {
+    "click",
+    function (event) {
 
         if (
-            event.target.closest(
-                "button"
-            ) ||
-            event.target.closest(
-                "input"
-            )
+            event.target.tagName !== "BUTTON" &&
+            event.target.tagName !== "INPUT"
         ) {
 
-            return;
+            jump();
         }
-
-
-        if (
-            !gameStarted ||
-            gameOver
-        ) {
-
-            return;
-        }
-
-
-        event.preventDefault();
-
-        jump();
 
     }
 );
 
+/* =========================
+   MOBILE TOUCH CONTROL
+========================= */
 
-/* =========================================================
+game.addEventListener(
+    "touchstart",
+    function (event) {
+
+        // Prevent scrolling while playing
+        event.preventDefault();
+
+        // Do nothing when pressing buttons or input
+        if (
+            event.target.tagName === "BUTTON" ||
+            event.target.tagName === "INPUT"
+        ) {
+            return;
+        }
+
+        jump();
+    },
+    { passive: false }
+);
+
+
+/* =========================
    DIFFICULTY
-========================================================= */
+========================= */
 
 function getDifficulty() {
 
@@ -900,36 +286,28 @@ function getDifficulty() {
             240 - score * 2
         );
 
-
     const speed =
         Math.min(
             5,
             2.5 + score * 0.08
         );
 
-
     return {
-
-        gap:
-            gap,
-
-        speed:
-            speed
-
+        gap: gap,
+        speed: speed
     };
 
 }
 
 
-/* =========================================================
+/* =========================
    CREATE PIPE
-========================================================= */
+========================= */
 
 function createPipe() {
 
     const difficulty =
         getDifficulty();
-
 
     const gap =
         difficulty.gap;
@@ -938,17 +316,14 @@ function createPipe() {
     const maxTop =
         550 - gap;
 
-
-    const minTop =
-        80;
+    const minTop = 80;
 
 
     const topHeight =
         Math.floor(
             Math.random() *
             (maxTop - minTop)
-        ) +
-        minTop;
+        ) + minTop;
 
 
     const bottomHeight =
@@ -957,92 +332,61 @@ function createPipe() {
         gap;
 
 
-    /* TOP PIPE */
-
     const topPipe =
-        document.createElement(
-            "div"
-        );
-
+        document.createElement("div");
 
     topPipe.classList.add(
         "pipe",
         "topPipe"
     );
 
-
-    topPipe.style.width =
-        "65px";
-
+    topPipe.style.width = "65px";
 
     topPipe.style.height =
         topHeight + "px";
 
 
-    /* BOTTOM PIPE */
-
     const bottomPipe =
-        document.createElement(
-            "div"
-        );
-
+        document.createElement("div");
 
     bottomPipe.classList.add(
         "pipe",
         "bottomPipe"
     );
 
-
-    bottomPipe.style.width =
-        "65px";
-
+    bottomPipe.style.width = "65px";
 
     bottomPipe.style.height =
         bottomHeight + "px";
 
 
-    /* START POSITION */
+    topPipe.style.left = "500px";
 
-    topPipe.style.left =
-        "500px";
-
-
-    bottomPipe.style.left =
-        "500px";
+    bottomPipe.style.left = "500px";
 
 
-    game.appendChild(
-        topPipe
-    );
+    game.appendChild(topPipe);
 
-
-    game.appendChild(
-        bottomPipe
-    );
+    game.appendChild(bottomPipe);
 
 
     pipes.push({
 
-        top:
-            topPipe,
+        top: topPipe,
+        bottom: bottomPipe,
 
-        bottom:
-            bottomPipe,
+        x: 500,
 
-        x:
-            500,
-
-        passed:
-            false
+        passed: false
 
     });
 
 }
 
 
-/* =========================================================
+/* =========================
    COLLISION
-========================================================= */
+========================= */
 
 function checkCollision(
     birdRect,
@@ -1051,226 +395,105 @@ function checkCollision(
 
     return !(
         birdRect.right <
-            pipeRect.left ||
+        pipeRect.left ||
 
         birdRect.left >
-            pipeRect.right ||
+        pipeRect.right ||
 
         birdRect.bottom <
-            pipeRect.top ||
+        pipeRect.top ||
 
         birdRect.top >
-            pipeRect.bottom
+        pipeRect.bottom
     );
 
 }
 
 
-/* =========================================================
-   SAVE SCORE
-========================================================= */
-
-async function saveScore() {
-
-    if (
-        score <= 0
-    ) {
-
-        return;
-    }
-
-
-    try {
-
-        await ensureAuth();
-
-
-        /* =================================================
-           SMALL PHOTO
-        ================================================= */
-
-        const smallCanvas =
-            document.createElement(
-                "canvas"
-            );
-
-
-        const size =
-            128;
-
-
-        smallCanvas.width =
-            size;
-
-
-        smallCanvas.height =
-            size;
-
-
-        const context =
-            smallCanvas.getContext(
-                "2d"
-            );
-
-
-        const image =
-            new Image();
-
-
-        image.src =
-            playerPhoto;
-
-
-        await new Promise(
-            function(resolve, reject) {
-
-                image.onload =
-                    resolve;
-
-                image.onerror =
-                    reject;
-
-            }
-        );
-
-
-        const sourceSize =
-            Math.min(
-                image.width,
-                image.height
-            );
-
-
-        const sourceX =
-            (
-                image.width -
-                sourceSize
-            ) / 2;
-
-
-        const sourceY =
-            (
-                image.height -
-                sourceSize
-            ) / 2;
-
-
-        context.drawImage(
-            image,
-
-            sourceX,
-            sourceY,
-
-            sourceSize,
-            sourceSize,
-
-            0,
-            0,
-
-            size,
-            size
-        );
-
-
-        const smallPhoto =
-            smallCanvas.toDataURL(
-                "image/jpeg",
-                0.65
-            );
-
-
-        const leaderboardRef =
-            ref(
-                database,
-                "leaderboard"
-            );
-
-
-        await push(
-            leaderboardRef,
-            {
-
-                name:
-                    playerName,
-
-                photo:
-                    smallPhoto,
-
-                score:
-                    score
-
-            }
-        );
-
-
-        console.log(
-            "Score saved online!"
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Could not save score:",
-            error
-        );
-
-    }
-
-}
-
-
-/* =========================================================
+/* =========================
    GAME OVER
-========================================================= */
+========================= */
 
 function endGame() {
 
-    if (
-        gameOver
-    ) {
-
+    if (gameOver) {
         return;
     }
 
+    gameOver = true;
 
-    gameOver =
-        true;
+    gameStarted = false;
 
+    saveScore();
 
-    gameStarted =
-        false;
+    setTimeout(function () {
 
+        showGameOver();
 
-    bird.style.display =
-        "none";
-
-
-    saveScore()
-        .finally(
-            function() {
-
-                showGameOver();
-
-            }
-        );
+    }, 300);
 
 }
 
 
-/* =========================================================
+/* =========================
+   SAVE SCORE
+========================= */
+
+function saveScore() {
+
+    // Don't save zero score
+    if (score <= 0) {
+        return;
+    }
+
+
+    let leaderboard =
+        JSON.parse(
+            localStorage.getItem(
+                "burdyLeaderboard"
+            )
+        ) || [];
+
+
+    leaderboard.push({
+
+        name: playerName,
+
+        photo: playerPhoto,
+
+        score: score
+
+    });
+
+
+    leaderboard.sort(
+        (a, b) =>
+            b.score - a.score
+    );
+
+
+    leaderboard =
+        leaderboard.slice(0, 10);
+
+
+    localStorage.setItem(
+        "burdyLeaderboard",
+        JSON.stringify(leaderboard)
+    );
+
+}
+
+
+/* =========================
    GAME OVER SCREEN
-========================================================= */
+========================= */
 
 function showGameOver() {
 
-    bird.style.display =
-        "none";
+    // Hide player character
+    bird.style.display = "none";
 
-
-    cameraScreen.style.display =
-        "flex";
-
+    cameraScreen.style.display = "flex";
 
     cameraScreen.innerHTML = `
 
@@ -1280,9 +503,7 @@ function showGameOver() {
             alt="Player"
         >
 
-        <h1>
-            GAME OVER
-        </h1>
+        <h1>GAME OVER</h1>
 
         <p class="gameOverName">
             ${playerName}
@@ -1303,128 +524,68 @@ function showGameOver() {
     `;
 
 
-    const playAgainButton =
-        document.getElementById(
-            "playAgainButton"
+    document
+        .getElementById("playAgainButton")
+        .addEventListener(
+            "click",
+            function () {
+
+                startGame();
+
+            }
         );
 
 
-    const showLeaderboardButton =
-        document.getElementById(
+    document
+        .getElementById(
             "showLeaderboardButton"
+        )
+        .addEventListener(
+            "click",
+            function () {
+
+                showLeaderboard();
+
+            }
         );
-
-
-    playAgainButton.addEventListener(
-        "click",
-        function(event) {
-
-            event.preventDefault();
-
-            event.stopPropagation();
-
-            startGame();
-
-        }
-    );
-
-
-    playAgainButton.addEventListener(
-        "touchend",
-        function(event) {
-
-            event.preventDefault();
-
-            event.stopPropagation();
-
-            startGame();
-
-        },
-        {
-            passive: false
-        }
-    );
-
-
-    showLeaderboardButton.addEventListener(
-        "click",
-        function(event) {
-
-            event.preventDefault();
-
-            event.stopPropagation();
-
-            showLeaderboard();
-
-        }
-    );
-
-
-    showLeaderboardButton.addEventListener(
-        "touchend",
-        function(event) {
-
-            event.preventDefault();
-
-            event.stopPropagation();
-
-            showLeaderboard();
-
-        },
-        {
-            passive: false
-        }
-    );
 
 }
 
 
-/* =========================================================
+/* =========================
    START / RESTART GAME
-========================================================= */
+========================= */
 
 function startGame() {
 
-    pipes.forEach(
-        function(pipe) {
+    // Remove old pipes
 
-            pipe.top.remove();
+    pipes.forEach(function (pipe) {
 
-            pipe.bottom.remove();
+        pipe.top.remove();
 
-        }
-    );
+        pipe.bottom.remove();
+
+    });
 
 
     pipes = [];
 
 
-    birdY =
-        300;
+    birdY = 300;
+
+    velocity = 0;
+
+    score = 0;
+
+    frameCount = 0;
+
+    gameOver = false;
+
+    gameStarted = true;
 
 
-    velocity =
-        0;
-
-
-    score =
-        0;
-
-
-    frameCount =
-        0;
-
-
-    gameOver =
-        false;
-
-
-    gameStarted =
-        true;
-
-
-    scoreDisplay.textContent =
-        "0";
+    scoreDisplay.textContent = "0";
 
 
     bird.style.top =
@@ -1434,13 +595,8 @@ function startGame() {
     birdImage.src =
         playerPhoto;
 
-
-    birdImage.style.transform =
-        "scaleX(1)";
-
-
-    bird.style.display =
-        "block";
+    // Show player character
+    bird.style.display = "block";
 
 
     cameraScreen.style.display =
@@ -1449,207 +605,93 @@ function startGame() {
 }
 
 
-/* =========================================================
-   ONLINE LEADERBOARD
-========================================================= */
+/* =========================
+   LEADERBOARD
+========================= */
 
-async function showLeaderboard() {
+function showLeaderboard() {
 
+    // Hide game over/camera screen
     cameraScreen.style.display =
         "none";
-
 
     leaderboardScreen.style.display =
         "flex";
 
 
     leaderboardList.innerHTML =
-        "<p>Loading leaderboard...</p>";
+        "";
 
 
-    try {
-
-        await ensureAuth();
-
-
-        const leaderboardRef =
-            ref(
-                database,
-                "leaderboard"
-            );
+    let leaderboard =
+        JSON.parse(
+            localStorage.getItem(
+                "burdyLeaderboard"
+            )
+        ) || [];
 
 
-        const leaderboardQuery =
-            query(
-
-                leaderboardRef,
-
-                orderByChild(
-                    "score"
-                ),
-
-                limitToLast(
-                    10
-                )
-
-            );
-
-
-        const snapshot =
-            await get(
-                leaderboardQuery
-            );
-
+    if (leaderboard.length === 0) {
 
         leaderboardList.innerHTML =
-            "";
+            "<p>No scores yet.</p>";
 
-
-        if (
-            !snapshot.exists()
-        ) {
-
-            leaderboardList.innerHTML =
-                "<p>No scores yet.</p>";
-
-            return;
-
-        }
-
-
-        const players =
-            [];
-
-
-        snapshot.forEach(
-            function(childSnapshot) {
-
-                players.push(
-                    childSnapshot.val()
-                );
-
-            }
-        );
-
-
-        players.sort(
-            function(a, b) {
-
-                return (
-                    b.score -
-                    a.score
-                );
-
-            }
-        );
-
-
-        players.forEach(
-            function(player, index) {
-
-                const row =
-                    document.createElement(
-                        "div"
-                    );
-
-
-                row.className =
-                    "leaderboardRow";
-
-
-                const image =
-                    document.createElement(
-                        "img"
-                    );
-
-
-                image.src =
-                    player.photo;
-
-
-                image.alt =
-                    "Player";
-
-
-                const name =
-                    document.createElement(
-                        "span"
-                    );
-
-
-                name.textContent =
-                    (
-                        index + 1
-                    ) +
-                    ". " +
-                    player.name;
-
-
-                const scoreElement =
-                    document.createElement(
-                        "span"
-                    );
-
-
-                scoreElement.textContent =
-                    player.score;
-
-
-                row.appendChild(
-                    image
-                );
-
-
-                row.appendChild(
-                    name
-                );
-
-
-                row.appendChild(
-                    scoreElement
-                );
-
-
-                leaderboardList.appendChild(
-                    row
-                );
-
-            }
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Leaderboard error:",
-            error
-        );
-
-
-        leaderboardList.innerHTML =
-            "<p>Unable to load leaderboard.</p>";
+        return;
 
     }
+
+
+    leaderboard.forEach(
+        function (player, index) {
+
+            const row =
+                document.createElement(
+                    "div"
+                );
+
+            row.className =
+                "leaderboardRow";
+
+
+            row.innerHTML = `
+
+                <img
+                    src="${player.photo}"
+                    alt="Player"
+                >
+
+                <span>
+                    ${index + 1}.
+                    ${player.name}
+                </span>
+
+                <span>
+                    ${player.score}
+                </span>
+
+            `;
+
+
+            leaderboardList.appendChild(
+                row
+            );
+
+        }
+    );
 
 }
 
 
-/* =========================================================
+/* =========================
    BACK BUTTON
-========================================================= */
+========================= */
 
 backButton.addEventListener(
     "click",
-    function(event) {
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
+    function () {
 
         leaderboardScreen.style.display =
             "none";
-
 
         cameraScreen.style.display =
             "flex";
@@ -1658,27 +700,22 @@ backButton.addEventListener(
 );
 
 
-/* =========================================================
+/* =========================
    GAME LOOP
-========================================================= */
+========================= */
 
 function gameLoop() {
 
-    if (
-        gameStarted
-    ) {
+    if (gameStarted) {
 
         frameCount++;
 
 
         /* GRAVITY */
 
-        velocity +=
-            gravity;
+        velocity += gravity;
 
-
-        birdY +=
-            velocity;
+        birdY += velocity;
 
 
         bird.style.top =
@@ -1687,13 +724,9 @@ function gameLoop() {
 
         /* GROUND */
 
-        if (
-            birdY >= 640
-        ) {
+        if (birdY >= 640) {
 
-            birdY =
-                640;
-
+            birdY = 640;
 
             endGame();
 
@@ -1702,25 +735,18 @@ function gameLoop() {
 
         /* CEILING */
 
-        if (
-            birdY <= 0
-        ) {
+        if (birdY <= 0) {
 
-            birdY =
-                0;
+            birdY = 0;
 
-
-            velocity =
-                0;
+            velocity = 0;
 
         }
 
 
         /* CREATE PIPES */
 
-        if (
-            frameCount % 120 === 0
-        ) {
+        if (frameCount % 120 === 0) {
 
             createPipe();
 
@@ -1734,7 +760,7 @@ function gameLoop() {
 
 
         pipes.forEach(
-            function(pipe) {
+            function (pipe) {
 
                 pipe.x -=
                     difficulty.speed;
@@ -1755,12 +781,9 @@ function gameLoop() {
                     pipe.x < 100
                 ) {
 
-                    pipe.passed =
-                        true;
-
+                    pipe.passed = true;
 
                     score++;
-
 
                     scoreDisplay.textContent =
                         score;
@@ -1775,13 +798,11 @@ function gameLoop() {
 
 
                 const topRect =
-                    pipe.top
-                        .getBoundingClientRect();
+                    pipe.top.getBoundingClientRect();
 
 
                 const bottomRect =
-                    pipe.bottom
-                        .getBoundingClientRect();
+                    pipe.bottom.getBoundingClientRect();
 
 
                 if (
@@ -1789,7 +810,6 @@ function gameLoop() {
                         birdRect,
                         topRect
                     ) ||
-
                     checkCollision(
                         birdRect,
                         bottomRect
@@ -1808,11 +828,9 @@ function gameLoop() {
 
         pipes =
             pipes.filter(
-                function(pipe) {
+                function (pipe) {
 
-                    if (
-                        pipe.x < -100
-                    ) {
+                    if (pipe.x < -100) {
 
                         pipe.top.remove();
 
@@ -1821,7 +839,6 @@ function gameLoop() {
                         return false;
 
                     }
-
 
                     return true;
 

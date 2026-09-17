@@ -1,29 +1,76 @@
+/* =========================
+   DESIGN TOKENS
+========================= */
+
+:root {
+    --sky-top: #57C4F5;
+    --sky-mid: #8FDCFB;
+    --sky-bottom: #DFF6FF;
+
+    --sun: #FFD166;
+
+    --pipe: #0AA97B;
+    --pipe-dark: #04794F;
+    --pipe-light: #4FE3B3;
+
+    --ink: #123049;
+    --ink-soft: #3C6A85;
+
+    --cream: #FFF8EC;
+
+    --coral: #FF6B6B;
+    --coral-dark: #E24C4C;
+
+    --white: #FFFFFF;
+
+    --shadow-soft: 0 10px 24px rgba(18, 48, 73, 0.18);
+    --shadow-pop: 0 6px 0 rgba(4, 121, 79, 0.9);
+
+    --radius-lg: 26px;
+    --radius-md: 16px;
+    --radius-sm: 10px;
+
+    --font-display: 'Baloo 2', 'Nunito', system-ui, sans-serif;
+    --font-body: 'Nunito', system-ui, sans-serif;
+}
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-html,
 body {
-    touch-action: manipulation;
-}
-
-body {
-    font-family: Arial, sans-serif;
-    background: #222;
+    font-family: var(--font-body);
+    background: radial-gradient(circle at 50% 0%, #2E5C7A 0%, #16324A 65%, #0E2233 100%);
 
     display: flex;
     justify-content: center;
     align-items: center;
 
-    height: 100vh;
+    min-height: 100vh;
+
+    overflow: hidden;
 }
 
 
 /* =========================
-   GAME
+   RESPONSIVE WRAPPER
 ========================= */
+
+#gameWrapper {
+    width: 100%;
+    min-height: 100vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 16px;
+}
+
+
+/* GAME */
 
 #game {
     width: 500px;
@@ -32,24 +79,157 @@ body {
     position: relative;
     overflow: hidden;
 
-    background: skyblue;
+    background: linear-gradient(
+        180deg,
+        var(--sky-top) 0%,
+        var(--sky-mid) 55%,
+        var(--sky-bottom) 100%
+    );
 
-    border: 4px solid white;
-    border-radius: 10px;
+    border: 6px solid var(--white);
+    border-radius: 22px;
 
-    touch-action: none;
-    user-select: none;
-    -webkit-user-select: none;
+    box-shadow: var(--shadow-soft), 0 0 0 3px rgba(255, 255, 255, 0.4);
+
+    transform-origin: center center;
+
+    flex-shrink: 0;
+}
+
+/* Sun glow, purely decorative, sits behind everything */
+#game::before {
+    content: "";
+    position: absolute;
+
+    top: -60px;
+    right: -60px;
+
+    width: 180px;
+    height: 180px;
+
+    background: radial-gradient(circle, var(--sun) 0%, rgba(255, 209, 102, 0) 70%);
+
+    border-radius: 50%;
+
+    z-index: 0;
+
+    pointer-events: none;
 }
 
 
 /* =========================
-   CAMERA SCREEN
+   CLOUDS (decorative, no gameplay effect)
+========================= */
+
+.clouds {
+    position: absolute;
+    inset: 0;
+
+    z-index: 1;
+
+    overflow: hidden;
+
+    pointer-events: none;
+}
+
+.cloud {
+    position: absolute;
+
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 999px;
+
+    filter: blur(0.2px);
+}
+
+.cloud::before,
+.cloud::after {
+    content: "";
+    position: absolute;
+
+    background: inherit;
+    border-radius: 999px;
+}
+
+/* bump shapes to read as "cloud" rather than a plain pill */
+.cloud::before {
+    width: 55%;
+    height: 90%;
+    top: -45%;
+    left: 8%;
+}
+
+.cloud::after {
+    width: 40%;
+    height: 70%;
+    top: -30%;
+    right: 10%;
+}
+
+.cloud1 {
+    width: 100px;
+    height: 34px;
+    top: 60px;
+    left: 500px;
+    opacity: 0.95;
+    animation: cloudMove 22s linear infinite;
+}
+
+.cloud2 {
+    width: 70px;
+    height: 24px;
+    top: 140px;
+    left: 500px;
+    opacity: 0.8;
+    animation: cloudMove 30s linear infinite;
+    animation-delay: -6s;
+}
+
+.cloud3 {
+    width: 130px;
+    height: 40px;
+    top: 220px;
+    left: 500px;
+    opacity: 0.9;
+    animation: cloudMove 26s linear infinite;
+    animation-delay: -14s;
+}
+
+.cloud4 {
+    width: 60px;
+    height: 22px;
+    top: 40px;
+    left: 500px;
+    opacity: 0.7;
+    animation: cloudMove 36s linear infinite;
+    animation-delay: -22s;
+}
+
+.cloud5 {
+    width: 90px;
+    height: 30px;
+    top: 190px;
+    left: 500px;
+    opacity: 0.85;
+    animation: cloudMove 18s linear infinite;
+    animation-delay: -3s;
+}
+
+@keyframes cloudMove {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-780px);
+    }
+}
+
+
+/* =========================
+   OVERLAY SCREENS (camera / name / game over)
 ========================= */
 
 #cameraScreen {
     position: absolute;
-
     inset: 0;
 
     display: flex;
@@ -60,21 +240,59 @@ body {
 
     text-align: center;
 
-    color: white;
+    gap: 6px;
 
-    background: rgba(0, 0, 0, 0.35);
+    padding: 28px 24px;
+
+    color: var(--ink);
+
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.05) 100%),
+        rgba(18, 48, 73, 0.28);
+
+    backdrop-filter: blur(3px);
 
     z-index: 100;
+
+    overflow-y: auto;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    margin-bottom: 2px;
+}
+
+.brandEmoji {
+    font-size: 40px;
+
+    filter: drop-shadow(0 3px 0 rgba(18, 48, 73, 0.35));
 }
 
 #cameraScreen h1 {
-    font-size: 50px;
-    margin-bottom: 10px;
+    font-family: var(--font-display);
+    font-size: 44px;
+    font-weight: 800;
+
+    color: var(--white);
+
+    text-shadow: 0 3px 0 rgba(18, 48, 73, 0.35);
+
+    letter-spacing: 0.5px;
 }
 
 #cameraScreen p {
-    font-size: 18px;
-    margin-bottom: 10px;
+    font-size: 16px;
+    font-weight: 700;
+
+    color: var(--white);
+
+    text-shadow: 0 2px 4px rgba(18, 48, 73, 0.35);
+
+    margin-bottom: 8px;
 }
 
 
@@ -82,27 +300,29 @@ body {
    CAMERA
 ========================= */
 
+.cameraFrame {
+    position: relative;
+
+    width: 210px;
+    height: 210px;
+
+    margin-bottom: 14px;
+}
+
 #camera {
-    width: 300px;
-    height: 220px;
+    width: 100%;
+    height: 100%;
 
     object-fit: cover;
 
-    background: black;
+    background: var(--ink);
 
-    border-radius: 15px;
+    border-radius: 50%;
 
-    border: 4px solid white;
+    border: 6px solid var(--white);
 
-    margin-bottom: 10px;
-
-    transform: scaleX(1);
+    box-shadow: var(--shadow-soft);
 }
-
-
-/* =========================
-   PHOTO
-========================= */
 
 #photoCanvas {
     display: none;
@@ -111,18 +331,19 @@ body {
 #photoPreview {
     display: none;
 
-    width: 180px;
-    height: 180px;
+    position: absolute;
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
 
     object-fit: cover;
 
     border-radius: 50%;
 
-    border: 5px solid white;
+    border: 6px solid var(--white);
 
-    margin-bottom: 10px;
-
-    transform: scaleX(1);
+    box-shadow: var(--shadow-soft);
 }
 
 
@@ -133,43 +354,106 @@ body {
 button {
     width: 240px;
 
-    padding: 12px;
+    padding: 13px;
 
-    margin: 5px;
+    margin: 6px;
 
     border: none;
+    border-radius: var(--radius-md);
 
-    border-radius: 8px;
+    background: var(--white);
+    color: var(--ink);
 
-    background: white;
-
-    color: #222;
-
+    font-family: var(--font-display);
     font-size: 17px;
+    font-weight: 700;
 
-    font-weight: bold;
+    letter-spacing: 0.2px;
 
     cursor: pointer;
 
-    touch-action: manipulation;
+    box-shadow: 0 5px 0 rgba(18, 48, 73, 0.25);
+
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 button:hover {
-    transform: scale(1.03);
+    transform: translateY(-2px);
+    box-shadow: 0 7px 0 rgba(18, 48, 73, 0.25);
 }
 
+button:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 rgba(18, 48, 73, 0.25);
+}
 
-/* =========================
-   RETAKE
-========================= */
+.btn--primary,
+#startButton,
+#takePhotoButton,
+#backButton,
+#playAgainButton {
+    background: var(--pipe-light);
+    color: #033B26;
+    box-shadow: var(--shadow-pop);
+}
+
+.btn--primary:hover,
+#startButton:hover,
+#takePhotoButton:hover,
+#backButton:hover,
+#playAgainButton:hover {
+    box-shadow: 0 8px 0 rgba(4, 121, 79, 0.9);
+}
+
+.btn--primary:active,
+#startButton:active,
+#takePhotoButton:active,
+#backButton:active,
+#playAgainButton:active {
+    box-shadow: 0 3px 0 rgba(4, 121, 79, 0.9);
+}
+
+#showLeaderboardButton {
+    background: var(--sun);
+    color: #4A2E00;
+    box-shadow: 0 6px 0 rgba(190, 138, 0, 0.9);
+}
+
+#showLeaderboardButton:hover {
+    box-shadow: 0 8px 0 rgba(190, 138, 0, 0.9);
+}
+
+#showLeaderboardButton:active {
+    box-shadow: 0 3px 0 rgba(190, 138, 0, 0.9);
+}
+
+/* RETAKE */
 
 #retakeButton {
     display: none;
+
+    background: transparent;
+    color: var(--white);
+
+    box-shadow: none;
+
+    text-decoration: underline;
+
+    font-size: 15px;
+
+    width: auto;
+    padding: 6px 10px;
+}
+
+#retakeButton:hover {
+    transform: none;
+    box-shadow: none;
+    opacity: 0.85;
 }
 
 
 /* =========================
-   NAME
+   NAME ENTRY
 ========================= */
 
 #nameSection {
@@ -178,26 +462,45 @@ button:hover {
     flex-direction: column;
 
     align-items: center;
+
+    margin-top: 4px;
 }
 
 #playerName {
     width: 240px;
 
-    padding: 12px;
+    padding: 13px 16px;
 
-    margin: 5px;
+    margin: 6px;
 
     border: none;
+    border-radius: var(--radius-md);
 
-    border-radius: 8px;
+    background: var(--white);
 
-    font-size: 18px;
+    font-family: var(--font-body);
+    font-size: 17px;
+    font-weight: 700;
+
+    color: var(--ink);
 
     text-align: center;
 
     outline: none;
 
-    touch-action: manipulation;
+    box-shadow: inset 0 0 0 2px rgba(18, 48, 73, 0.08);
+
+    transition: box-shadow 0.15s ease;
+}
+
+#playerName:focus {
+    box-shadow: inset 0 0 0 2px var(--pipe);
+}
+
+#playerName::placeholder {
+    color: var(--ink-soft);
+    font-weight: 700;
+    opacity: 0.6;
 }
 
 
@@ -206,16 +509,25 @@ button:hover {
 ========================= */
 
 #cameraError {
-    color: #ffdddd;
+    color: var(--white);
 
-    max-width: 300px;
+    background: rgba(226, 76, 76, 0.0);
 
-    margin-top: 5px;
+    font-weight: 700;
+    font-size: 14px;
+
+    max-width: 280px;
+
+    min-height: 18px;
+
+    margin-top: 6px;
+
+    text-shadow: 0 2px 4px rgba(18, 48, 73, 0.4);
 }
 
 
 /* =========================
-   BIRD / PLAYER
+   BIRD (player character)
 ========================= */
 
 #bird {
@@ -232,6 +544,22 @@ button:hover {
     display: none;
 }
 
+#bird::after {
+    content: "";
+
+    position: absolute;
+
+    left: 6px;
+    bottom: -10px;
+
+    width: 48px;
+    height: 12px;
+
+    background: radial-gradient(ellipse, rgba(18, 48, 73, 0.28) 0%, rgba(18, 48, 73, 0) 70%);
+
+    border-radius: 50%;
+}
+
 #birdImage {
     width: 60px;
     height: 60px;
@@ -240,9 +568,11 @@ button:hover {
 
     border-radius: 50%;
 
-    border: 3px solid white;
+    border: 3px solid var(--white);
 
-    transform: scaleX(1);
+    box-shadow: 0 4px 10px rgba(18, 48, 73, 0.35);
+
+    background: var(--cream);
 }
 
 
@@ -253,30 +583,40 @@ button:hover {
 #score {
     position: absolute;
 
-    top: 20px;
+    top: 18px;
     left: 50%;
 
     transform: translateX(-50%);
 
-    font-size: 45px;
+    min-width: 64px;
 
-    font-weight: bold;
+    padding: 4px 18px;
 
-    color: white;
+    font-family: var(--font-display);
+    font-size: 38px;
+    font-weight: 800;
 
-    text-shadow: 2px 2px 4px black;
+    color: var(--white);
+
+    background: rgba(18, 48, 73, 0.25);
+
+    border: 3px solid rgba(255, 255, 255, 0.7);
+    border-radius: 999px;
+
+    text-align: center;
+
+    text-shadow: 0 3px 0 rgba(18, 48, 73, 0.4);
 
     z-index: 20;
 }
 
 
 /* =========================
-   LEADERBOARD SCREEN
+   LEADERBOARD
 ========================= */
 
 #leaderboardScreen {
     position: absolute;
-
     inset: 0;
 
     display: none;
@@ -284,126 +624,96 @@ button:hover {
     flex-direction: column;
 
     justify-content: center;
-
     align-items: center;
 
     text-align: center;
 
-    color: white;
+    padding: 24px;
 
-    background: rgba(0, 0, 0, 0.4);
+    color: var(--white);
+
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.05) 100%),
+        rgba(18, 48, 73, 0.4);
+
+    backdrop-filter: blur(3px);
 
     z-index: 200;
 }
 
 #leaderboardScreen h1 {
-    font-size: 45px;
+    font-family: var(--font-display);
+    font-size: 38px;
+    font-weight: 800;
 
-    margin-bottom: 20px;
+    margin-bottom: 18px;
+
+    text-shadow: 0 3px 0 rgba(18, 48, 73, 0.35);
 }
 
 #leaderboardList {
-    width: 350px;
+    width: 100%;
+    max-width: 360px;
 
-    max-height: 400px;
-
+    max-height: 420px;
     overflow-y: auto;
 
-    margin-bottom: 15px;
+    margin-bottom: 16px;
 
-    padding: 0 5px;
+    padding: 4px;
 }
 
 
-/* =========================
-   LEADERBOARD ROW
-========================= */
+/* LEADERBOARD ROW */
 
 .leaderboardRow {
     display: grid;
-
-    grid-template-columns: 50px 1fr 70px;
+    grid-template-columns: 44px 1fr auto;
 
     align-items: center;
+    gap: 12px;
 
-    width: 100%;
+    background: var(--cream);
+    color: var(--ink);
 
-    background: white;
-
-    color: #222;
-
-    padding: 10px 14px;
-
+    padding: 8px 14px;
     margin: 7px 0;
 
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
 
-    font-size: 18px;
+    box-shadow: 0 3px 0 rgba(18, 48, 73, 0.15);
 
-    font-weight: bold;
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 700;
 
-    column-gap: 12px;
+    text-align: left;
 }
 
-
-/* PLAYER PHOTO */
-
 .leaderboardRow img {
-    width: 45px;
-    height: 45px;
+    width: 44px;
+    height: 44px;
 
     object-fit: cover;
 
     border-radius: 50%;
+
+    border: 2px solid var(--pipe-light);
 }
 
-
-/* NAME */
-
-.leaderboardRow span:nth-child(2) {
-    text-align: left;
-
+.leaderboardRow span:first-of-type {
     overflow: hidden;
-
-    white-space: nowrap;
-
     text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
+.leaderboardRow span:last-of-type {
+    color: var(--pipe-dark);
+    font-weight: 800;
 
-/* SCORE */
-
-.leaderboardRow span:nth-child(3) {
     text-align: right;
-
-    width: 70px;
 }
 
-
-/* MOBILE */
-
-@media (max-width: 600px) {
-
-    .leaderboardRow {
-        grid-template-columns:
-            45px 1fr 65px;
-
-        padding: 10px;
-
-        column-gap: 10px;
-
-        font-size: 16px;
-    }
-
-    .leaderboardRow img {
-        width: 42px;
-        height: 42px;
-    }
-
-    .leaderboardRow span:nth-child(3) {
-        width: 65px;
-    }
-}
 
 /* =========================
    PIPES
@@ -412,9 +722,11 @@ button:hover {
 .pipe {
     position: absolute;
 
-    background: #4caf50;
+    background: linear-gradient(90deg, var(--pipe-dark) 0%, var(--pipe) 18%, var(--pipe-light) 50%, var(--pipe) 82%, var(--pipe-dark) 100%);
 
-    border: 3px solid #2e7d32;
+    border: 3px solid var(--pipe-dark);
+
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.15);
 
     z-index: 5;
 }
@@ -422,122 +734,150 @@ button:hover {
 .topPipe {
     top: 0;
 
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+.topPipe::after {
+    content: "";
+
+    position: absolute;
+
+    bottom: 0;
+    left: -4px;
+    right: -4px;
+
+    height: 22px;
+
+    background: linear-gradient(90deg, var(--pipe-dark) 0%, var(--pipe) 18%, var(--pipe-light) 50%, var(--pipe) 82%, var(--pipe-dark) 100%);
+
+    border: 3px solid var(--pipe-dark);
+    border-radius: 8px;
 }
 
 .bottomPipe {
     bottom: 0;
 
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+.bottomPipe::before {
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+    left: -4px;
+    right: -4px;
+
+    height: 22px;
+
+    background: linear-gradient(90deg, var(--pipe-dark) 0%, var(--pipe) 18%, var(--pipe-light) 50%, var(--pipe) 82%, var(--pipe-dark) 100%);
+
+    border: 3px solid var(--pipe-dark);
+    border-radius: 8px;
 }
 
 
 /* =========================
-   GAME OVER FACE
+   GAME OVER
 ========================= */
 
 .gameOverFace {
-    width: 150px;
-    height: 150px;
+    width: 140px;
+    height: 140px;
 
     object-fit: cover;
 
     border-radius: 50%;
 
-    border: 6px solid white;
+    border: 6px solid var(--white);
 
-    margin-bottom: 15px;
+    margin-bottom: 14px;
 
-    box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.4);
-
-    transform: scaleX(1);
+    box-shadow: var(--shadow-soft);
 }
 
 .gameOverName {
+    font-family: var(--font-display);
     font-size: 22px !important;
+    font-weight: 700;
 
-    font-weight: bold;
+    color: var(--white);
 
-    margin-bottom: 3px !important;
+    margin-bottom: 2px !important;
+
+    text-shadow: 0 2px 4px rgba(18, 48, 73, 0.4);
 }
 
 .gameOverScore {
-    font-size: 20px !important;
+    font-family: var(--font-display);
+    font-size: 26px !important;
+    font-weight: 800;
 
-    font-weight: bold;
+    color: var(--sun);
 
-    margin-bottom: 15px !important;
+    margin-bottom: 16px !important;
+
+    text-shadow: 0 2px 4px rgba(18, 48, 73, 0.4);
 }
 
 
 /* =========================
-   MOBILE
+   MOBILE / RESPONSIVE
 ========================= */
 
-@media (max-width: 600px) {
+html,
+body {
+    touch-action: manipulation;
+}
 
-    body {
-        overflow: hidden;
-    }
+#game {
+    touch-action: manipulation;
+}
 
+button,
+input {
+    touch-action: manipulation;
+}
+
+/* Scale the fixed-size game board to fit smaller viewports.
+   #game keeps its internal 500x700 coordinate system so all
+   existing JS physics/collision math stays correct — only the
+   rendered size changes. */
+
+@media (max-width: 540px), (max-height: 760px) {
     #game {
-        width: 100vw;
-        height: 100vh;
+        transform: scale(0.82);
+    }
+}
 
-        border: none;
+@media (max-width: 460px), (max-height: 640px) {
+    #game {
+        transform: scale(0.7);
+    }
+}
 
-        border-radius: 0;
+@media (max-width: 400px), (max-height: 560px) {
+    #game {
+        transform: scale(0.6);
+    }
+}
+
+@media (max-width: 340px), (max-height: 500px) {
+    #game {
+        transform: scale(0.5);
+    }
+}
+
+@media (max-width: 540px) {
+    .cameraFrame {
+        width: 170px;
+        height: 170px;
     }
 
-    #camera {
-        width: 80vw;
-        max-width: 320px;
-
-        height: 220px;
-    }
-
-    #photoPreview {
-        width: 160px;
-        height: 160px;
-    }
-
-    #leaderboardScreen h1 {
-        font-size: 38px;
-    }
-
-    #leaderboardList {
-        width: 90vw;
-
-        max-width: 380px;
-
-        max-height: 65vh;
-    }
-
-    .leaderboardRow {
-        padding: 10px;
-
-        font-size: 16px;
-
-        gap: 10px;
-    }
-
-    .leaderboardRow img {
-        width: 42px;
-        height: 42px;
-    }
-
-    .leaderboardRow span:nth-child(2) {
-        padding-right: 15px;
-    }
-
-    .leaderboardRow span:nth-child(3) {
-        min-width: 55px;
-    }
-
-    #bird {
-        left: 80px;
+    #cameraScreen h1 {
+        font-size: 36px;
     }
 }

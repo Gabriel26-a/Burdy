@@ -1,137 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Burdy</title>
 
-    <link
-        rel="stylesheet"
-        href="style.css"
-    >
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
 
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-    <div id="game">
+    <div id="gameWrapper">
 
-        <!-- CAMERA SCREEN -->
+        <div id="game">
 
-        <div id="cameraScreen">
+            <!-- SKY CLOUDS (decorative only, no effect on gameplay) -->
+            <div class="clouds" aria-hidden="true">
+                <div class="cloud cloud--a cloud1"></div>
+                <div class="cloud cloud--b cloud2"></div>
+                <div class="cloud cloud--c cloud3"></div>
+                <div class="cloud cloud--a cloud4"></div>
+                <div class="cloud cloud--b cloud5"></div>
+            </div>
 
-            <h1>🐦 Burdy</h1>
+            <!-- CAMERA SCREEN -->
+            <div id="cameraScreen">
 
-            <p>
-                Take your picture first!
-            </p>
+                <div class="brand">
+                    <span class="brandEmoji">🐦</span>
+                    <h1>Burdy</h1>
+                </div>
 
-            <video
-                id="camera"
-                autoplay
-                playsinline
-            ></video>
+                <p>Snap a selfie to become the bird!</p>
 
-            <canvas
-                id="photoCanvas"
-            ></canvas>
+                <div class="cameraFrame">
+                    <video id="camera" autoplay playsinline></video>
+                    <img id="photoPreview" alt="Your photo">
+                </div>
 
-            <button
-                id="takePhotoButton"
-            >
-                📸 TAKE PHOTO
-            </button>
+                <canvas id="photoCanvas"></canvas>
 
-            <img
-                id="photoPreview"
-                alt="Your photo"
-            >
+                <button id="takePhotoButton" class="btn btn--primary">📸 Take Photo</button>
 
-            <button
-                id="retakeButton"
-            >
-                🔄 RETAKE
-            </button>
+                <button id="retakeButton" class="btn btn--ghost">🔄 Retake</button>
 
-            <div id="nameSection">
+                <div id="nameSection">
 
-                <input
-                    type="text"
-                    id="playerName"
-                    placeholder="Enter your name"
-                    maxlength="15"
-                >
+                    <input
+                        type="text"
+                        id="playerName"
+                        placeholder="Enter your name"
+                        maxlength="15"
+                        autocomplete="off"
+                    >
 
-                <button
-                    id="startButton"
-                >
-                    START GAME
-                </button>
+                    <button id="startButton" class="btn btn--primary">Start Game</button>
+
+                </div>
+
+                <p id="cameraError"></p>
 
             </div>
 
-            <p id="cameraError"></p>
 
-        </div>
+            <!-- GAME -->
+            <div id="bird">
+                <img id="birdImage" alt="Player">
+            </div>
 
-
-        <!-- PLAYER -->
-
-        <div id="bird">
-
-            <img
-                id="birdImage"
-                alt="Player"
-            >
-
-        </div>
+            <div id="score">0</div>
 
 
-        <!-- SCORE -->
+            <!-- LEADERBOARD -->
+            <div id="leaderboardScreen">
 
-        <div id="score">
-            0
-        </div>
+                <h1>🏆 Leaderboard</h1>
 
+                <div id="leaderboardList"></div>
 
-        <!-- LEADERBOARD -->
+                <button id="backButton" class="btn btn--primary">Back</button>
 
-        <div id="leaderboardScreen">
-
-            <h1>
-                🏆 Leaderboard
-            </h1>
-
-            <div
-                id="leaderboardList"
-            ></div>
-
-            <button
-                id="backButton"
-            >
-                BACK
-            </button>
+            </div>
 
         </div>
 
     </div>
 
-
-    <!-- IMPORTANT:
-         type="module" is required for Firebase -->
-
-    <script
-        type="module"
-        src="game.js"
-    ></script>
+    <script src="game.js"></script>
 
 </body>
-
 </html>
