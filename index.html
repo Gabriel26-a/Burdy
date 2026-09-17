@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burdy</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div id="game">
+
+        <!-- CAMERA SCREEN -->
+        <div id="cameraScreen">
+
+            <h1>🐦 Burdy</h1>
+
+            <p>Take your picture first!</p>
+
+            <video id="camera" autoplay playsinline></video>
+
+            <canvas id="photoCanvas"></canvas>
+
+            <button id="takePhotoButton">📸 TAKE PHOTO</button>
+
+            <img id="photoPreview" alt="Your photo">
+
+            <button id="retakeButton">🔄 RETAKE</button>
+
+            <div id="nameSection">
+
+                <input
+                    type="text"
+                    id="playerName"
+                    placeholder="Enter your name"
+                    maxlength="15"
+                >
+
+                <button id="startButton">START GAME</button>
+
+            </div>
+
+            <p id="cameraError"></p>
+
+        </div>
+
+
+        <!-- GAME -->
+        <div id="bird">
+            <img id="birdImage" alt="Player">
+        </div>
+
+        <div id="score">0</div>
+
+
+        <!-- LEADERBOARD -->
+        <div id="leaderboardScreen">
+
+            <h1>🏆 Leaderboard</h1>
+
+            <div id="leaderboardList"></div>
+
+            <button id="backButton">BACK</button>
+
+        </div>
+
+    </div>
+
+    <script src="game.js"></script>
+
+</body>
+</html>
