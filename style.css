@@ -714,6 +714,16 @@ button:active {
     text-align: right;
 }
 
+#leaderboardList p {
+    font-family: var(--font-body);
+    font-weight: 700;
+    color: var(--white);
+
+    padding: 24px 0;
+
+    text-shadow: 0 2px 4px rgba(18, 48, 73, 0.4);
+}
+
 
 /* =========================
    PIPES

@@ -1,3 +1,77 @@
+/* =========================
+   FIREBASE
+========================= */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+
+import {
+    getDatabase,
+    ref,
+    push,
+    get,
+    query,
+    orderByChild,
+    limitToLast
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+
+import {
+    getAuth,
+    signInAnonymously
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDQwrHSGzxEPGhbJhQP5Ij2YT1AKPEMXQk",
+    authDomain: "burdy-3836e.firebaseapp.com",
+    databaseURL: "https://burdy-3836e-default-rtdb.firebaseio.com/",
+    projectId: "burdy-3836e",
+    storageBucket: "burdy-3836e.firebasestorage.app",
+    messagingSenderId: "666892581152",
+    appId: "1:666892581152:web:87ba6d960e2ea408143f45"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+
+const database = getDatabase(firebaseApp);
+const auth = getAuth(firebaseApp);
+
+let authReady = null;
+
+function ensureAuth() {
+
+    if (!authReady) {
+
+        authReady =
+            signInAnonymously(auth)
+                .then(function () {
+                    return true;
+                })
+                .catch(function (error) {
+
+                    console.error(
+                        "Firebase auth error:",
+                        error
+                    );
+
+                    return false;
+
+                });
+
+    }
+
+    return authReady;
+
+}
+
+// Start signing in right away so it's ready by the time
+// a score needs to be saved or the leaderboard is opened.
+ensureAuth();
+
+
+/* =========================
+   ELEMENTS
+========================= */
+
 const bird = document.getElementById("bird");
 const birdImage = document.getElementById("birdImage");
 const game = document.getElementById("game");
@@ -436,50 +510,41 @@ function endGame() {
 
 
 /* =========================
-   SAVE SCORE
+   SAVE SCORE (Firebase Realtime Database)
 ========================= */
 
-function saveScore() {
+async function saveScore() {
 
     // Don't save zero score
     if (score <= 0) {
         return;
     }
 
+    try {
 
-    let leaderboard =
-        JSON.parse(
-            localStorage.getItem(
-                "burdyLeaderboard"
-            )
-        ) || [];
+        await ensureAuth();
 
+        const leaderboardRef =
+            ref(database, "leaderboard");
 
-    leaderboard.push({
+        await push(leaderboardRef, {
 
-        name: playerName,
+            name: playerName,
 
-        photo: playerPhoto,
+            photo: playerPhoto,
 
-        score: score
+            score: score
 
-    });
+        });
 
+    } catch (error) {
 
-    leaderboard.sort(
-        (a, b) =>
-            b.score - a.score
-    );
+        console.error(
+            "Error saving score to Firebase:",
+            error
+        );
 
-
-    leaderboard =
-        leaderboard.slice(0, 10);
-
-
-    localStorage.setItem(
-        "burdyLeaderboard",
-        JSON.stringify(leaderboard)
-    );
+    }
 
 }
 
@@ -606,10 +671,10 @@ function startGame() {
 
 
 /* =========================
-   LEADERBOARD
+   LEADERBOARD (Firebase Realtime Database)
 ========================= */
 
-function showLeaderboard() {
+async function showLeaderboard() {
 
     // Hide game over/camera screen
     cameraScreen.style.display =
@@ -620,64 +685,106 @@ function showLeaderboard() {
 
 
     leaderboardList.innerHTML =
-        "";
+        "<p>Loading leaderboard…</p>";
 
 
-    let leaderboard =
-        JSON.parse(
-            localStorage.getItem(
-                "burdyLeaderboard"
-            )
-        ) || [];
+    try {
 
+        await ensureAuth();
 
-    if (leaderboard.length === 0) {
+        const leaderboardRef =
+            ref(database, "leaderboard");
 
-        leaderboardList.innerHTML =
-            "<p>No scores yet.</p>";
-
-        return;
-
-    }
-
-
-    leaderboard.forEach(
-        function (player, index) {
-
-            const row =
-                document.createElement(
-                    "div"
-                );
-
-            row.className =
-                "leaderboardRow";
-
-
-            row.innerHTML = `
-
-                <img
-                    src="${player.photo}"
-                    alt="Player"
-                >
-
-                <span>
-                    ${index + 1}.
-                    ${player.name}
-                </span>
-
-                <span>
-                    ${player.score}
-                </span>
-
-            `;
-
-
-            leaderboardList.appendChild(
-                row
+        const topScoresQuery =
+            query(
+                leaderboardRef,
+                orderByChild("score"),
+                limitToLast(10)
             );
 
+        const snapshot =
+            await get(topScoresQuery);
+
+
+        leaderboardList.innerHTML =
+            "";
+
+
+        if (!snapshot.exists()) {
+
+            leaderboardList.innerHTML =
+                "<p>No scores yet.</p>";
+
+            return;
+
         }
-    );
+
+
+        let entries = [];
+
+        snapshot.forEach(function (child) {
+
+            entries.push(child.val());
+
+        });
+
+        // limitToLast returns ascending order,
+        // so put the highest score first.
+        entries.sort(
+            (a, b) =>
+                b.score - a.score
+        );
+
+
+        entries.forEach(
+            function (player, index) {
+
+                const row =
+                    document.createElement(
+                        "div"
+                    );
+
+                row.className =
+                    "leaderboardRow";
+
+
+                row.innerHTML = `
+
+                    <img
+                        src="${player.photo}"
+                        alt="Player"
+                    >
+
+                    <span>
+                        ${index + 1}.
+                        ${player.name}
+                    </span>
+
+                    <span>
+                        ${player.score}
+                    </span>
+
+                `;
+
+
+                leaderboardList.appendChild(
+                    row
+                );
+
+            }
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Error loading leaderboard from Firebase:",
+            error
+        );
+
+        leaderboardList.innerHTML =
+            "<p>Couldn't load leaderboard.</p>";
+
+    }
 
 }
 
