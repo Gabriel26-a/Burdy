@@ -320,7 +320,9 @@ button:hover {
 ========================= */
 
 .leaderboardRow {
-    display: flex;
+    display: grid;
+
+    grid-template-columns: 50px 1fr 70px;
 
     align-items: center;
 
@@ -340,7 +342,7 @@ button:hover {
 
     font-weight: bold;
 
-    gap: 12px;
+    column-gap: 12px;
 }
 
 
@@ -353,38 +355,55 @@ button:hover {
     object-fit: cover;
 
     border-radius: 50%;
-
-    flex-shrink: 0;
 }
 
 
 /* NAME */
 
 .leaderboardRow span:nth-child(2) {
-    flex: 1;
-
     text-align: left;
-
-    white-space: nowrap;
 
     overflow: hidden;
 
-    text-overflow: ellipsis;
+    white-space: nowrap;
 
-    padding-right: 20px;
+    text-overflow: ellipsis;
 }
 
 
 /* SCORE */
 
 .leaderboardRow span:nth-child(3) {
-    min-width: 60px;
-
     text-align: right;
 
-    padding-left: 10px;
+    width: 70px;
 }
 
+
+/* MOBILE */
+
+@media (max-width: 600px) {
+
+    .leaderboardRow {
+        grid-template-columns:
+            45px 1fr 65px;
+
+        padding: 10px;
+
+        column-gap: 10px;
+
+        font-size: 16px;
+    }
+
+    .leaderboardRow img {
+        width: 42px;
+        height: 42px;
+    }
+
+    .leaderboardRow span:nth-child(3) {
+        width: 65px;
+    }
+}
 
 /* =========================
    PIPES
