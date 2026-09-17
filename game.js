@@ -641,91 +641,24 @@ game.addEventListener(
    DIFFICULTY
 ========================================================= */
 
+/* =========================================================
+   DIFFICULTY
+========================================================= */
+
 function getDifficulty() {
 
-    let gap;
-    let speed;
-    let maxShift;
+    const gap =
+        Math.max(
+            180,
+            240 - score * 2
+        );
 
 
-    /*
-        0 - 4
-        EASY
-    */
-
-    if (score < 5) {
-
-        gap = 210;
-
-        speed = 2.5;
-
-        maxShift = 35;
-
-    }
-
-
-    /*
-        5 - 9
-        MEDIUM
-    */
-
-    else if (score < 10) {
-
-        gap = 195;
-
-        speed = 2.8;
-
-        maxShift = 55;
-
-    }
-
-
-    /*
-        10 - 14
-        HARDER
-    */
-
-    else if (score < 15) {
-
-        gap = 180;
-
-        speed = 3.2;
-
-        maxShift = 75;
-
-    }
-
-
-    /*
-        15 - 24
-        HARD
-    */
-
-    else if (score < 25) {
-
-        gap = 165;
-
-        speed = 3.7;
-
-        maxShift = 95;
-
-    }
-
-
-    /*
-        25+
-        VERY HARD
-    */
-
-    else {
-
-        gap = 150;
-
-        speed = 4.2;
-
-        maxShift = 115;
-
-    }
+    const speed =
+        Math.min(
+            5,
+            2.5 + score * 0.08
+        );
 
 
     return {
@@ -734,16 +667,11 @@ function getDifficulty() {
             gap,
 
         speed:
-            speed,
-
-        maxShift:
-            maxShift
+            speed
 
     };
 
 }
-
-
 /* =========================================================
    CREATE PIPE
 ========================================================= */
@@ -758,64 +686,20 @@ function createPipe() {
         difficulty.gap;
 
 
-    const maxShift =
-        difficulty.maxShift;
+    const maxTop =
+        550 - gap;
 
 
-    /*
-        SAFE CENTER RANGE
+    const minTop =
+        80;
 
-        This keeps the gap inside the game
-        and prevents impossible starting pipes.
-    */
-
-    const minCenter =
-        180;
-
-
-    const maxCenter =
-        520;
-
-
-    /*
-        Random vertical movement
-        from the previous pipe.
-    */
-
-    const randomShift =
-        (
-            Math.random() * 2 - 1
-        ) * maxShift;
-
-
-    let newCenter =
-        lastGapCenter +
-        randomShift;
-
-
-    /*
-        Keep center inside safe range.
-    */
-
-    newCenter =
-        Math.max(
-            minCenter,
-            Math.min(
-                maxCenter,
-                newCenter
-            )
-        );
-
-
-    /*
-        Calculate pipe height.
-    */
 
     const topHeight =
-        Math.round(
-            newCenter -
-            gap / 2
-        );
+        Math.floor(
+            Math.random() *
+            (maxTop - minTop)
+        ) +
+        minTop;
 
 
     const bottomHeight =
@@ -823,6 +707,88 @@ function createPipe() {
         topHeight -
         gap;
 
+
+    /* TOP PIPE */
+
+    const topPipe =
+        document.createElement(
+            "div"
+        );
+
+
+    topPipe.classList.add(
+        "pipe",
+        "topPipe"
+    );
+
+
+    topPipe.style.width =
+        "65px";
+
+
+    topPipe.style.height =
+        topHeight + "px";
+
+
+    /* BOTTOM PIPE */
+
+    const bottomPipe =
+        document.createElement(
+            "div"
+        );
+
+
+    bottomPipe.classList.add(
+        "pipe",
+        "bottomPipe"
+    );
+
+
+    bottomPipe.style.width =
+        "65px";
+
+
+    bottomPipe.style.height =
+        bottomHeight + "px";
+
+
+    /* START POSITION */
+
+    topPipe.style.left =
+        "500px";
+
+
+    bottomPipe.style.left =
+        "500px";
+
+
+    game.appendChild(
+        topPipe
+    );
+
+
+    game.appendChild(
+        bottomPipe
+    );
+
+
+    pipes.push({
+
+        top:
+            topPipe,
+
+        bottom:
+            bottomPipe,
+
+        x:
+            500,
+
+        passed:
+            false
+
+    });
+
+}
 
     /* =====================================================
        TOP PIPE
