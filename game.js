@@ -31,40 +31,24 @@ const firebaseConfig = {
 };
 
 const firebaseApp = initializeApp(firebaseConfig);
-
 const database = getDatabase(firebaseApp);
 const auth = getAuth(firebaseApp);
 
 let authReady = null;
 
 function ensureAuth() {
-
     if (!authReady) {
-
-        authReady =
-            signInAnonymously(auth)
-                .then(function () {
-                    return true;
-                })
-                .catch(function (error) {
-
-                    console.error(
-                        "Firebase auth error:",
-                        error
-                    );
-
-                    return false;
-
-                });
-
+        authReady = signInAnonymously(auth)
+            .then(() => true)
+            .catch((error) => {
+                console.error("Firebase auth error:", error);
+                return false;
+            });
     }
 
     return authReady;
-
 }
 
-// Start signing in right away so it's ready by the time
-// a score needs to be saved or the leaderboard is opened.
 ensureAuth();
 
 
@@ -89,16 +73,15 @@ const startButton = document.getElementById("startButton");
 const cameraScreen = document.getElementById("cameraScreen");
 const cameraError = document.getElementById("cameraError");
 
-const leaderboardScreen =
-    document.getElementById("leaderboardScreen");
+const leaderboardScreen = document.getElementById("leaderboardScreen");
+const leaderboardList = document.getElementById("leaderboardList");
+const backButton = document.getElementById("backButton");
 
-const leaderboardList =
-    document.getElementById("leaderboardList");
 
-const backButton =
-    document.getElementById("backButton");
+/* =========================
+   INITIAL STATE
+========================= */
 
-// Hide player character until game starts
 bird.style.display = "none";
 
 
@@ -108,8 +91,8 @@ bird.style.display = "none";
 
 let playerName = "";
 let playerPhoto = "";
-
 let stream = null;
+let cameraStarting = false;
 
 
 /* =========================
@@ -124,12 +107,70 @@ const jumpStrength = -8;
 
 let gameStarted = false;
 let gameOver = false;
-
 let score = 0;
-
 let pipes = [];
-
 let frameCount = 0;
+
+
+/* =========================
+   CAMERA UI STATE
+========================= */
+
+const cameraBaseElements = Array.from(cameraScreen.children);
+let gameOverOverlay = null;
+
+function showCameraBase() {
+    cameraBaseElements.forEach((element) => {
+        element.style.display = "";
+    });
+}
+
+function hideCameraBase() {
+    cameraBaseElements.forEach((element) => {
+        element.style.display = "none";
+    });
+}
+
+function resetCameraUI() {
+    if (gameOverOverlay) {
+        gameOverOverlay.remove();
+        gameOverOverlay = null;
+    }
+
+    showCameraBase();
+
+    camera.style.display = "block";
+    photoPreview.style.display = "none";
+    takePhotoButton.style.display = "inline-block";
+    retakeButton.style.display = "none";
+    nameSection.style.display = "none";
+    cameraError.textContent = "";
+}
+
+function showCameraError(error) {
+    console.error("Camera error:", error);
+
+    if (error?.name === "NotAllowedError") {
+        cameraError.textContent =
+            "Camera permission is blocked. Allow camera access in your browser.";
+        return;
+    }
+
+    if (error?.name === "NotFoundError") {
+        cameraError.textContent =
+            "No camera was found on this device.";
+        return;
+    }
+
+    if (error?.name === "NotReadableError") {
+        cameraError.textContent =
+            "The camera is being used by another app.";
+        return;
+    }
+
+    cameraError.textContent =
+        "Unable to open the camera. Please allow camera access.";
+}
 
 
 /* =========================
@@ -137,23 +178,78 @@ let frameCount = 0;
 ========================= */
 
 async function startCamera() {
+    if (cameraStarting) {
+        return false;
+    }
+
+    if (stream && stream.getVideoTracks().some((track) => track.readyState === "live")) {
+        return true;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+        cameraError.textContent =
+            "Camera is not supported by this browser.";
+        return false;
+    }
+
+    cameraStarting = true;
 
     try {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: {
+                        ideal: "user"
+                    }
+                },
+                audio: false
+            });
+        } catch (firstError) {
+            console.warn("Front camera request failed; trying default camera.", firstError);
 
-        stream =
-            await navigator.mediaDevices.getUserMedia({
+            stream = await navigator.mediaDevices.getUserMedia({
                 video: true,
                 audio: false
             });
+        }
 
         camera.srcObject = stream;
+        camera.muted = true;
+        camera.autoplay = true;
+        camera.playsInline = true;
+        camera.setAttribute("playsinline", "");
+        camera.setAttribute("webkit-playsinline", "");
+        camera.style.transform = "scaleX(1)";
+        camera.style.display = "block";
 
+        await new Promise((resolve) => {
+            if (camera.readyState >= 2 && camera.videoWidth > 0) {
+                resolve();
+                return;
+            }
+
+            const done = () => {
+                camera.removeEventListener("loadedmetadata", done);
+                resolve();
+            };
+
+            camera.addEventListener("loadedmetadata", done, { once: true });
+        });
+
+        try {
+            await camera.play();
+        } catch (playError) {
+            console.warn("Camera play warning:", playError);
+        }
+
+        cameraStarting = false;
+        cameraError.textContent = "";
+        return true;
     } catch (error) {
-
-        cameraError.textContent =
-            "Please allow camera access.";
-
-        console.error(error);
+        cameraStarting = false;
+        stream = null;
+        showCameraError(error);
+        return false;
     }
 }
 
@@ -164,17 +260,26 @@ startCamera();
    TAKE PHOTO
 ========================= */
 
-takePhotoButton.addEventListener("click", function () {
+async function takePhoto() {
+    if (!stream || !camera.videoWidth || !camera.videoHeight) {
+        cameraError.textContent = "Starting camera...";
 
-    if (!camera.videoWidth) {
-        return;
+        const ready = await startCamera();
+
+        if (!ready || !camera.videoWidth || !camera.videoHeight) {
+            return;
+        }
     }
 
     photoCanvas.width = camera.videoWidth;
     photoCanvas.height = camera.videoHeight;
 
-    const context =
-        photoCanvas.getContext("2d");
+    const context = photoCanvas.getContext("2d");
+
+    if (!context) {
+        cameraError.textContent = "Unable to capture the photo.";
+        return;
+    }
 
     context.drawImage(
         camera,
@@ -184,99 +289,107 @@ takePhotoButton.addEventListener("click", function () {
         photoCanvas.height
     );
 
-    playerPhoto =
-        photoCanvas.toDataURL("image/png");
+    playerPhoto = photoCanvas.toDataURL("image/png");
 
     photoPreview.src = playerPhoto;
-
     photoPreview.style.display = "block";
-
     camera.style.display = "none";
-
     takePhotoButton.style.display = "none";
-
-    retakeButton.style.display = "block";
-
+    retakeButton.style.display = "inline-block";
     nameSection.style.display = "flex";
-
-
-    // Stop camera
+    cameraError.textContent = "";
 
     if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+        stream = null;
+    }
+}
 
-        stream.getTracks().forEach(track => {
-            track.stop();
-        });
+let takePhotoLocked = false;
 
+async function handleTakePhoto(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (takePhotoLocked) {
+        return;
     }
 
-});
+    takePhotoLocked = true;
+
+    try {
+        await takePhoto();
+    } finally {
+        window.setTimeout(function () {
+            takePhotoLocked = false;
+        }, 500);
+    }
+}
+
+// Desktop / keyboard-generated click
+takePhotoButton.addEventListener("click", handleTakePhoto);
+
+// Mobile / touch-friendly pointer event
+takePhotoButton.addEventListener("pointerup", handleTakePhoto);
+
+// Older mobile browsers that still use touch events
+takePhotoButton.addEventListener("touchend", handleTakePhoto, { passive: false });
 
 
 /* =========================
    RETAKE PHOTO
 ========================= */
 
-retakeButton.addEventListener("click", function () {
-
+async function retakePhoto() {
     photoPreview.style.display = "none";
-
     retakeButton.style.display = "none";
-
     nameSection.style.display = "none";
-
-    takePhotoButton.style.display = "block";
-
+    takePhotoButton.style.display = "inline-block";
     camera.style.display = "block";
+    cameraError.textContent = "";
 
-    startCamera();
+    await startCamera();
+}
 
-});
+function handleRetake(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    void retakePhoto();
+}
+
+retakeButton.addEventListener("click", handleRetake);
 
 
 /* =========================
    START GAME
 ========================= */
 
-startButton.addEventListener("click", function () {
+function startPlayerGame() {
+    playerName = playerNameInput.value.trim();
 
-    playerName =
-        playerNameInput.value.trim();
-
-
-    if (playerName === "") {
-
-        cameraError.textContent =
-            "Please enter your name.";
-
+    if (!playerName) {
+        cameraError.textContent = "Please enter your name.";
+        playerNameInput.focus();
         return;
     }
 
-
-    if (playerPhoto === "") {
-
-        cameraError.textContent =
-            "Please take your picture first.";
-
+    if (!playerPhoto) {
+        cameraError.textContent = "Please take your picture first.";
         return;
     }
-
-
-    // Put player's face on bird
 
     birdImage.src = playerPhoto;
-
-    // Show player only when game starts
-    bird.style.display = "block";
-
-    // Hide camera screen
-    cameraScreen.style.display = "none";
-
-
-    // Start game
+    birdImage.style.transform = "scaleX(1)";
     startGame();
+}
 
-});
+function handleStartGame(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    startPlayerGame();
+}
+
+startButton.addEventListener("click", handleStartGame);
 
 
 /* =========================
@@ -284,7 +397,6 @@ startButton.addEventListener("click", function () {
 ========================= */
 
 function jump() {
-
     if (!gameStarted || gameOver) {
         return;
     }
@@ -293,59 +405,34 @@ function jump() {
 }
 
 
-document.addEventListener(
-    "keydown",
-    function (event) {
-
-        if (event.code === "Space") {
-
-            event.preventDefault();
-
-            jump();
-        }
-
+document.addEventListener("keydown", function (event) {
+    if (event.code === "Space") {
+        event.preventDefault();
+        jump();
     }
-);
+});
 
-
-game.addEventListener(
-    "click",
-    function (event) {
-
-        if (
-            event.target.tagName !== "BUTTON" &&
-            event.target.tagName !== "INPUT"
-        ) {
-
-            jump();
-        }
-
-    }
-);
 
 /* =========================
-   MOBILE TOUCH CONTROL
+   GAME TAP CONTROL
 ========================= */
 
-game.addEventListener(
-    "touchstart",
-    function (event) {
+game.addEventListener("pointerdown", function (event) {
+    if (
+        event.target.closest("button") ||
+        event.target.closest("input") ||
+        event.target.closest("a")
+    ) {
+        return;
+    }
 
-        // Prevent scrolling while playing
-        event.preventDefault();
+    if (!gameStarted || gameOver) {
+        return;
+    }
 
-        // Do nothing when pressing buttons or input
-        if (
-            event.target.tagName === "BUTTON" ||
-            event.target.tagName === "INPUT"
-        ) {
-            return;
-        }
-
-        jump();
-    },
-    { passive: false }
-);
+    event.preventDefault();
+    jump();
+});
 
 
 /* =========================
@@ -353,24 +440,20 @@ game.addEventListener(
 ========================= */
 
 function getDifficulty() {
+    const gap = Math.max(
+        180,
+        240 - score * 2
+    );
 
-    const gap =
-        Math.max(
-            180,
-            240 - score * 2
-        );
-
-    const speed =
-        Math.min(
-            5,
-            2.5 + score * 0.08
-        );
+    const speed = Math.min(
+        5,
+        2.5 + score * 0.08
+    );
 
     return {
-        gap: gap,
-        speed: speed
+        gap,
+        speed
     };
-
 }
 
 
@@ -379,82 +462,42 @@ function getDifficulty() {
 ========================= */
 
 function createPipe() {
+    const difficulty = getDifficulty();
+    const gap = difficulty.gap;
 
-    const difficulty =
-        getDifficulty();
-
-    const gap =
-        difficulty.gap;
-
-
-    const maxTop =
-        550 - gap;
-
+    const maxTop = 550 - gap;
     const minTop = 80;
-
 
     const topHeight =
         Math.floor(
-            Math.random() *
-            (maxTop - minTop)
+            Math.random() * (maxTop - minTop)
         ) + minTop;
 
-
     const bottomHeight =
-        700 -
-        topHeight -
-        gap;
+        700 - topHeight - gap;
 
-
-    const topPipe =
-        document.createElement("div");
-
-    topPipe.classList.add(
-        "pipe",
-        "topPipe"
-    );
-
+    const topPipe = document.createElement("div");
+    topPipe.classList.add("pipe", "topPipe");
     topPipe.style.width = "65px";
+    topPipe.style.height = `${topHeight}px`;
 
-    topPipe.style.height =
-        topHeight + "px";
-
-
-    const bottomPipe =
-        document.createElement("div");
-
-    bottomPipe.classList.add(
-        "pipe",
-        "bottomPipe"
-    );
-
+    const bottomPipe = document.createElement("div");
+    bottomPipe.classList.add("pipe", "bottomPipe");
     bottomPipe.style.width = "65px";
-
-    bottomPipe.style.height =
-        bottomHeight + "px";
-
+    bottomPipe.style.height = `${bottomHeight}px`;
 
     topPipe.style.left = "500px";
-
     bottomPipe.style.left = "500px";
 
-
     game.appendChild(topPipe);
-
     game.appendChild(bottomPipe);
 
-
     pipes.push({
-
         top: topPipe,
         bottom: bottomPipe,
-
         x: 500,
-
         passed: false
-
     });
-
 }
 
 
@@ -462,25 +505,45 @@ function createPipe() {
    COLLISION
 ========================= */
 
-function checkCollision(
-    birdRect,
-    pipeRect
-) {
-
+function checkCollision(birdRect, pipeRect) {
     return !(
-        birdRect.right <
-        pipeRect.left ||
-
-        birdRect.left >
-        pipeRect.right ||
-
-        birdRect.bottom <
-        pipeRect.top ||
-
-        birdRect.top >
-        pipeRect.bottom
+        birdRect.right < pipeRect.left ||
+        birdRect.left > pipeRect.right ||
+        birdRect.bottom < pipeRect.top ||
+        birdRect.top > pipeRect.bottom
     );
+}
 
+
+/* =========================
+   SAVE SCORE
+========================= */
+
+async function saveScore() {
+    if (score <= 0) {
+        return;
+    }
+
+    try {
+        const authenticated = await ensureAuth();
+
+        if (!authenticated) {
+            return;
+        }
+
+        const leaderboardRef = ref(database, "leaderboard");
+
+        await push(leaderboardRef, {
+            name: playerName,
+            photo: playerPhoto,
+            score
+        });
+    } catch (error) {
+        console.error(
+            "Error saving score to Firebase:",
+            error
+        );
+    }
 }
 
 
@@ -488,64 +551,17 @@ function checkCollision(
    GAME OVER
 ========================= */
 
-function endGame() {
-
+async function endGame() {
     if (gameOver) {
         return;
     }
 
     gameOver = true;
-
     gameStarted = false;
+    bird.style.display = "none";
 
-    saveScore();
-
-    setTimeout(function () {
-
-        showGameOver();
-
-    }, 300);
-
-}
-
-
-/* =========================
-   SAVE SCORE (Firebase Realtime Database)
-========================= */
-
-async function saveScore() {
-
-    // Don't save zero score
-    if (score <= 0) {
-        return;
-    }
-
-    try {
-
-        await ensureAuth();
-
-        const leaderboardRef =
-            ref(database, "leaderboard");
-
-        await push(leaderboardRef, {
-
-            name: playerName,
-
-            photo: playerPhoto,
-
-            score: score
-
-        });
-
-    } catch (error) {
-
-        console.error(
-            "Error saving score to Firebase:",
-            error
-        );
-
-    }
-
+    await saveScore();
+    showGameOver();
 }
 
 
@@ -554,14 +570,16 @@ async function saveScore() {
 ========================= */
 
 function showGameOver() {
+    if (gameOverOverlay) {
+        gameOverOverlay.remove();
+    }
 
-    // Hide player character
-    bird.style.display = "none";
+    hideCameraBase();
 
-    cameraScreen.style.display = "flex";
+    gameOverOverlay = document.createElement("div");
+    gameOverOverlay.className = "gameOverOverlay";
 
-    cameraScreen.innerHTML = `
-
+    gameOverOverlay.innerHTML = `
         <img
             src="${playerPhoto}"
             class="gameOverFace"
@@ -570,50 +588,40 @@ function showGameOver() {
 
         <h1>GAME OVER</h1>
 
-        <p class="gameOverName">
-            ${playerName}
-        </p>
+        <p class="gameOverName"></p>
 
-        <p class="gameOverScore">
-            Score: ${score}
-        </p>
+        <p class="gameOverScore"></p>
 
-        <button id="playAgainButton">
-            PLAY AGAIN
+        <button id="playAgainButton" class="btn btn--primary">
+            Play Again
         </button>
 
-        <button id="showLeaderboardButton">
-            LEADERBOARD
+        <button id="showLeaderboardButton" class="btn btn--primary">
+            Leaderboard
         </button>
-
     `;
 
+    gameOverOverlay.querySelector(".gameOverName").textContent = playerName;
+    gameOverOverlay.querySelector(".gameOverScore").textContent = `Score: ${score}`;
 
-    document
-        .getElementById("playAgainButton")
-        .addEventListener(
-            "click",
-            function () {
+    cameraScreen.appendChild(gameOverOverlay);
+    cameraScreen.style.display = "flex";
 
-                startGame();
+    gameOverOverlay
+        .querySelector("#playAgainButton")
+        .addEventListener("click", function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            startGame();
+        });
 
-            }
-        );
-
-
-    document
-        .getElementById(
-            "showLeaderboardButton"
-        )
-        .addEventListener(
-            "click",
-            function () {
-
-                showLeaderboard();
-
-            }
-        );
-
+    gameOverOverlay
+        .querySelector("#showLeaderboardButton")
+        .addEventListener("click", function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            void showLeaderboard();
+        });
 }
 
 
@@ -622,160 +630,112 @@ function showGameOver() {
 ========================= */
 
 function startGame() {
-
-    // Remove old pipes
-
     pipes.forEach(function (pipe) {
-
         pipe.top.remove();
-
         pipe.bottom.remove();
-
     });
-
 
     pipes = [];
 
-
     birdY = 300;
-
     velocity = 0;
-
     score = 0;
-
     frameCount = 0;
-
     gameOver = false;
-
     gameStarted = true;
 
-
     scoreDisplay.textContent = "0";
-
-
-    bird.style.top =
-        birdY + "px";
-
-
-    birdImage.src =
-        playerPhoto;
-
-    // Show player character
+    bird.style.top = `${birdY}px`;
+    birdImage.src = playerPhoto;
+    birdImage.style.transform = "scaleX(1)";
     bird.style.display = "block";
 
+    if (gameOverOverlay) {
+        gameOverOverlay.remove();
+        gameOverOverlay = null;
+    }
 
-    cameraScreen.style.display =
-        "none";
-
+    showCameraBase();
+    cameraScreen.style.display = "none";
 }
 
 
 /* =========================
-   LEADERBOARD (Firebase Realtime Database)
+   ONLINE LEADERBOARD
 ========================= */
 
 async function showLeaderboard() {
-
-    // Hide game over/camera screen
-    cameraScreen.style.display =
-        "none";
-
-    leaderboardScreen.style.display =
-        "flex";
-
-
-    leaderboardList.innerHTML =
-        "<p>Loading leaderboard…</p>";
-
+    cameraScreen.style.display = "none";
+    leaderboardScreen.style.display = "flex";
+    leaderboardList.innerHTML = "<p>Loading leaderboard…</p>";
 
     try {
+        const authenticated = await ensureAuth();
 
-        await ensureAuth();
-
-        const leaderboardRef =
-            ref(database, "leaderboard");
-
-        const topScoresQuery =
-            query(
-                leaderboardRef,
-                orderByChild("score"),
-                limitToLast(10)
-            );
-
-        const snapshot =
-            await get(topScoresQuery);
-
-
-        leaderboardList.innerHTML =
-            "";
-
-
-        if (!snapshot.exists()) {
-
-            leaderboardList.innerHTML =
-                "<p>No scores yet.</p>";
-
-            return;
-
+        if (!authenticated) {
+            throw new Error("Firebase authentication failed.");
         }
 
+        const leaderboardRef = ref(
+            database,
+            "leaderboard"
+        );
 
-        let entries = [];
+        const topScoresQuery = query(
+            leaderboardRef,
+            orderByChild("score"),
+            limitToLast(10)
+        );
+
+        const snapshot = await get(topScoresQuery);
+
+        leaderboardList.innerHTML = "";
+
+        if (!snapshot.exists()) {
+            leaderboardList.innerHTML = "<p>No scores yet.</p>";
+            return;
+        }
+
+        const entries = [];
 
         snapshot.forEach(function (child) {
+            const data = child.val();
 
-            entries.push(child.val());
-
+            if (
+                data &&
+                typeof data.name === "string" &&
+                typeof data.photo === "string" &&
+                typeof data.score === "number"
+            ) {
+                entries.push(data);
+            }
         });
 
-        // limitToLast returns ascending order,
-        // so put the highest score first.
-        entries.sort(
-            (a, b) =>
-                b.score - a.score
-        );
+        entries.sort(function (a, b) {
+            return b.score - a.score;
+        });
 
+        entries.forEach(function (player, index) {
+            const row = document.createElement("div");
+            row.className = "leaderboardRow";
 
-        entries.forEach(
-            function (player, index) {
+            const image = document.createElement("img");
+            image.src = player.photo;
+            image.alt = "Player";
 
-                const row =
-                    document.createElement(
-                        "div"
-                    );
+            const name = document.createElement("span");
+            name.textContent = `${index + 1}. ${player.name}`;
 
-                row.className =
-                    "leaderboardRow";
+            const scoreElement = document.createElement("span");
+            scoreElement.textContent = String(player.score);
 
+            row.appendChild(image);
+            row.appendChild(name);
+            row.appendChild(scoreElement);
 
-                row.innerHTML = `
-
-                    <img
-                        src="${player.photo}"
-                        alt="Player"
-                    >
-
-                    <span>
-                        ${index + 1}.
-                        ${player.name}
-                    </span>
-
-                    <span>
-                        ${player.score}
-                    </span>
-
-                `;
-
-
-                leaderboardList.appendChild(
-                    row
-                );
-
-            }
-        );
-
+            leaderboardList.appendChild(row);
+        });
     } catch (error) {
-
         console.error(
             "Error loading leaderboard from Firebase:",
             error
@@ -783,9 +743,7 @@ async function showLeaderboard() {
 
         leaderboardList.innerHTML =
             "<p>Couldn't load leaderboard.</p>";
-
     }
-
 }
 
 
@@ -793,18 +751,18 @@ async function showLeaderboard() {
    BACK BUTTON
 ========================= */
 
-backButton.addEventListener(
-    "click",
-    function () {
+backButton.addEventListener("click", function (event) {
+    event.preventDefault();
+    event.stopPropagation();
 
-        leaderboardScreen.style.display =
-            "none";
+    leaderboardScreen.style.display = "none";
 
-        cameraScreen.style.display =
-            "flex";
-
+    if (gameOverOverlay) {
+        cameraScreen.style.display = "flex";
+    } else {
+        cameraScreen.style.display = "flex";
     }
-);
+});
 
 
 /* =========================
@@ -812,154 +770,73 @@ backButton.addEventListener(
 ========================= */
 
 function gameLoop() {
-
     if (gameStarted) {
-
         frameCount++;
 
-
         /* GRAVITY */
-
         velocity += gravity;
-
         birdY += velocity;
-
-
-        bird.style.top =
-            birdY + "px";
-
+        bird.style.top = `${birdY}px`;
 
         /* GROUND */
-
         if (birdY >= 640) {
-
             birdY = 640;
-
-            endGame();
-
+            void endGame();
         }
-
 
         /* CEILING */
-
         if (birdY <= 0) {
-
             birdY = 0;
-
             velocity = 0;
-
         }
-
 
         /* CREATE PIPES */
-
         if (frameCount % 120 === 0) {
-
             createPipe();
-
         }
 
-
         /* MOVE PIPES */
+        const difficulty = getDifficulty();
 
-        const difficulty =
-            getDifficulty();
+        pipes.forEach(function (pipe) {
+            pipe.x -= difficulty.speed;
 
+            pipe.top.style.left = `${pipe.x}px`;
+            pipe.bottom.style.left = `${pipe.x}px`;
 
-        pipes.forEach(
-            function (pipe) {
-
-                pipe.x -=
-                    difficulty.speed;
-
-
-                pipe.top.style.left =
-                    pipe.x + "px";
-
-
-                pipe.bottom.style.left =
-                    pipe.x + "px";
-
-
-                /* SCORE */
-
-                if (
-                    !pipe.passed &&
-                    pipe.x < 100
-                ) {
-
-                    pipe.passed = true;
-
-                    score++;
-
-                    scoreDisplay.textContent =
-                        score;
-
-                }
-
-
-                /* COLLISION */
-
-                const birdRect =
-                    bird.getBoundingClientRect();
-
-
-                const topRect =
-                    pipe.top.getBoundingClientRect();
-
-
-                const bottomRect =
-                    pipe.bottom.getBoundingClientRect();
-
-
-                if (
-                    checkCollision(
-                        birdRect,
-                        topRect
-                    ) ||
-                    checkCollision(
-                        birdRect,
-                        bottomRect
-                    )
-                ) {
-
-                    endGame();
-
-                }
-
+            /* SCORE */
+            if (!pipe.passed && pipe.x < 100) {
+                pipe.passed = true;
+                score++;
+                scoreDisplay.textContent = String(score);
             }
-        );
 
+            /* COLLISION */
+            const birdRect = bird.getBoundingClientRect();
+            const topRect = pipe.top.getBoundingClientRect();
+            const bottomRect = pipe.bottom.getBoundingClientRect();
+
+            if (
+                checkCollision(birdRect, topRect) ||
+                checkCollision(birdRect, bottomRect)
+            ) {
+                void endGame();
+            }
+        });
 
         /* REMOVE OLD PIPES */
+        pipes = pipes.filter(function (pipe) {
+            if (pipe.x < -100) {
+                pipe.top.remove();
+                pipe.bottom.remove();
+                return false;
+            }
 
-        pipes =
-            pipes.filter(
-                function (pipe) {
-
-                    if (pipe.x < -100) {
-
-                        pipe.top.remove();
-
-                        pipe.bottom.remove();
-
-                        return false;
-
-                    }
-
-                    return true;
-
-                }
-            );
-
+            return true;
+        });
     }
 
-
-    requestAnimationFrame(
-        gameLoop
-    );
-
+    requestAnimationFrame(gameLoop);
 }
-
 
 gameLoop();
