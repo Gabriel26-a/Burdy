@@ -234,12 +234,12 @@ document.addEventListener(
 );
 
 
-game.addEventListener(
+EventListener(
     "click",
     function (event) {
 
         if (
-            event.target.tagName !== "BUTTON" &&
+            event.target.tagNamgame.adde !== "BUTTON" &&
             event.target.tagName !== "INPUT"
         ) {
 
@@ -253,14 +253,15 @@ game.addEventListener(
    MOBILE TOUCH CONTROL
 ========================= */
 
+/* =========================
+   MOBILE TOUCH CONTROL
+========================= */
+
 game.addEventListener(
     "touchstart",
     function (event) {
 
-        // Prevent scrolling while playing
-        event.preventDefault();
-
-        // Do nothing when pressing buttons or input
+        // Huwag i-block ang buttons at input
         if (
             event.target.tagName === "BUTTON" ||
             event.target.tagName === "INPUT"
@@ -268,11 +269,14 @@ game.addEventListener(
             return;
         }
 
+        // Prevent scrolling habang naglalaro
+        event.preventDefault();
+
         jump();
+
     },
     { passive: false }
 );
-
 
 /* =========================
    DIFFICULTY

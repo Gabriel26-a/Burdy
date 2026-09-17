@@ -381,3 +381,8 @@ body {
 #game {
     touch-action: manipulation;
 }
+
+button,
+input {
+    touch-action: manipulation;
+}
