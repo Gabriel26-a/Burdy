@@ -48,7 +48,6 @@ const firebaseConfig = {
 
     appId:
         "1:666892581152:web:87ba6d960e2ea408143f45"
-
 };
 
 
@@ -72,7 +71,6 @@ const auth =
 
 let authReady =
     signInAnonymously(auth);
-
 
 authReady.catch(function(error) {
 
@@ -176,8 +174,9 @@ bird.style.display = "none";
 
 let playerName = "";
 let playerPhoto = "";
-
 let stream = null;
+
+let cameraStarting = false;
 
 
 /* =========================================================
@@ -200,15 +199,71 @@ let pipes = [];
 let frameCount = 0;
 
 
-/*
-    IMPORTANT:
-    This keeps track of the previous pipe gap.
+/* =========================================================
+   CAMERA ERROR MESSAGE
+========================================================= */
 
-    This prevents the pipe from suddenly spawning
-    in an impossible position.
-*/
+function showCameraError(error) {
 
-let lastGapCenter = 350;
+    console.error("Camera error:", error);
+
+
+    if (
+        error &&
+        error.name === "NotAllowedError"
+    ) {
+
+        cameraError.textContent =
+            "Camera permission is blocked. Please allow camera access in your browser.";
+
+        return;
+
+    }
+
+
+    if (
+        error &&
+        error.name === "NotFoundError"
+    ) {
+
+        cameraError.textContent =
+            "No camera was found on this device.";
+
+        return;
+
+    }
+
+
+    if (
+        error &&
+        error.name === "NotReadableError"
+    ) {
+
+        cameraError.textContent =
+            "The camera is being used by another app.";
+
+        return;
+
+    }
+
+
+    if (
+        error &&
+        error.name === "SecurityError"
+    ) {
+
+        cameraError.textContent =
+            "Camera access was blocked by the browser.";
+
+        return;
+
+    }
+
+
+    cameraError.textContent =
+        "Unable to open the camera. Please allow camera access.";
+
+}
 
 
 /* =========================================================
@@ -217,62 +272,211 @@ let lastGapCenter = 350;
 
 async function startCamera() {
 
-    try {
+    if (cameraStarting) {
+        return false;
+    }
+
+
+    if (stream) {
 
         if (
-            !navigator.mediaDevices ||
-            !navigator.mediaDevices.getUserMedia
+            stream.getVideoTracks().some(
+                function(track) {
+
+                    return track.readyState === "live";
+
+                }
+            )
         ) {
 
-            cameraError.textContent =
-                "Camera is not supported.";
+            return true;
 
-            return;
         }
 
+    }
 
-        stream =
-            await navigator
-                .mediaDevices
-                .getUserMedia({
 
-                    video: {
-                        facingMode: "user"
-                    },
+    if (
+        !navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia
+    ) {
 
-                    audio: false
+        cameraError.textContent =
+            "Camera is not supported by this browser.";
 
-                });
+        return false;
+
+    }
+
+
+    cameraStarting = true;
+
+
+    try {
+
+        /* =================================================
+           FIRST TRY: FRONT CAMERA
+        ================================================= */
+
+        try {
+
+            stream =
+                await navigator
+                    .mediaDevices
+                    .getUserMedia({
+
+                        video: {
+                            facingMode: {
+                                ideal: "user"
+                            }
+                        },
+
+                        audio: false
+
+                    });
+
+        } catch (firstError) {
+
+            console.log(
+                "Front camera failed. Trying default camera..."
+            );
+
+
+            /* =================================================
+               FALLBACK: ANY CAMERA
+            ================================================= */
+
+            stream =
+                await navigator
+                    .mediaDevices
+                    .getUserMedia({
+
+                        video: true,
+
+                        audio: false
+
+                    });
+
+        }
 
 
         camera.srcObject =
             stream;
 
 
-        await camera.play();
+        camera.muted =
+            true;
 
 
-        // Not mirrored
+        camera.autoplay =
+            true;
+
+
+        camera.playsInline =
+            true;
+
+
+        camera.setAttribute(
+            "playsinline",
+            ""
+        );
+
+
+        camera.setAttribute(
+            "webkit-playsinline",
+            ""
+        );
+
+
         camera.style.transform =
             "scaleX(1)";
 
 
+        camera.style.display =
+            "block";
+
+
+        /*
+            Wait for the camera to provide
+            actual video dimensions.
+        */
+
+        await new Promise(
+            function(resolve) {
+
+                if (
+                    camera.readyState >= 2 &&
+                    camera.videoWidth > 0
+                ) {
+
+                    resolve();
+
+                    return;
+
+                }
+
+
+                camera.onloadedmetadata =
+                    function() {
+
+                        resolve();
+
+                    };
+
+            }
+        );
+
+
+        try {
+
+            await camera.play();
+
+        } catch (playError) {
+
+            console.log(
+                "Camera play warning:",
+                playError
+            );
+
+        }
+
+
+        cameraStarting =
+            false;
+
+
         cameraError.textContent =
-            "";
+            "Camera ready!";
+
+
+        return true;
 
 
     } catch (error) {
 
-        console.error(error);
+        cameraStarting =
+            false;
 
 
-        cameraError.textContent =
-            "Please allow camera access.";
+        stream =
+            null;
+
+
+        showCameraError(
+            error
+        );
+
+
+        return false;
 
     }
 
 }
 
+
+/* =========================================================
+   START CAMERA
+========================================================= */
 
 startCamera();
 
@@ -281,19 +485,55 @@ startCamera();
    TAKE PHOTO
 ========================================================= */
 
-function takePhoto() {
+async function takePhoto() {
+
+    /*
+        If camera did not start yet,
+        try starting it after the user
+        presses the button.
+    */
 
     if (
+        !stream ||
         !camera.videoWidth ||
         !camera.videoHeight
     ) {
 
         cameraError.textContent =
-            "Camera is not ready yet.";
+            "Starting camera...";
+
+
+        const cameraStarted =
+            await startCamera();
+
+
+        /*
+            First tap only starts the camera
+            if it was not ready.
+        */
+
+        if (
+            !cameraStarted ||
+            !camera.videoWidth ||
+            !camera.videoHeight
+        ) {
+
+            return;
+
+        }
+
+
+        cameraError.textContent =
+            "Camera is ready. Tap TAKE PHOTO again.";
 
         return;
+
     }
 
+
+    /* =================================================
+       CAPTURE
+    ================================================= */
 
     photoCanvas.width =
         camera.videoWidth;
@@ -355,31 +595,36 @@ function takePhoto() {
 
         stream
             .getTracks()
-            .forEach(function(track) {
+            .forEach(
+                function(track) {
 
-                track.stop();
+                    track.stop();
 
-            });
+                }
+            );
 
-        stream = null;
+
+        stream =
+            null;
+
     }
 
 }
 
 
 /* =========================================================
-   TAKE PHOTO
+   TAKE PHOTO CLICK
 ========================================================= */
 
 takePhotoButton.addEventListener(
     "click",
-    function(event) {
+    async function(event) {
 
         event.preventDefault();
 
         event.stopPropagation();
 
-        takePhoto();
+        await takePhoto();
 
     }
 );
@@ -391,13 +636,13 @@ takePhotoButton.addEventListener(
 
 takePhotoButton.addEventListener(
     "touchend",
-    function(event) {
+    async function(event) {
 
         event.preventDefault();
 
         event.stopPropagation();
 
-        takePhoto();
+        await takePhoto();
 
     },
     {
@@ -410,7 +655,7 @@ takePhotoButton.addEventListener(
    RETAKE PHOTO
 ========================================================= */
 
-function retakePhoto() {
+async function retakePhoto() {
 
     photoPreview.style.display =
         "none";
@@ -433,23 +678,23 @@ function retakePhoto() {
 
 
     cameraError.textContent =
-        "";
+        "Starting camera...";
 
 
-    startCamera();
+    await startCamera();
 
 }
 
 
 retakeButton.addEventListener(
     "click",
-    function(event) {
+    async function(event) {
 
         event.preventDefault();
 
         event.stopPropagation();
 
-        retakePhoto();
+        await retakePhoto();
 
     }
 );
@@ -457,13 +702,13 @@ retakeButton.addEventListener(
 
 retakeButton.addEventListener(
     "touchend",
-    function(event) {
+    async function(event) {
 
         event.preventDefault();
 
         event.stopPropagation();
 
-        retakePhoto();
+        await retakePhoto();
 
     },
     {
@@ -490,6 +735,7 @@ function startPlayerGame() {
             "Please enter your name.";
 
         return;
+
     }
 
 
@@ -501,6 +747,7 @@ function startPlayerGame() {
             "Please take your picture first.";
 
         return;
+
     }
 
 
@@ -612,8 +859,12 @@ game.addEventListener(
     function(event) {
 
         if (
-            event.target.closest("button") ||
-            event.target.closest("input")
+            event.target.closest(
+                "button"
+            ) ||
+            event.target.closest(
+                "input"
+            )
         ) {
 
             return;
@@ -636,10 +887,6 @@ game.addEventListener(
     }
 );
 
-
-/* =========================================================
-   DIFFICULTY
-========================================================= */
 
 /* =========================================================
    DIFFICULTY
@@ -672,6 +919,8 @@ function getDifficulty() {
     };
 
 }
+
+
 /* =========================================================
    CREATE PIPE
 ========================================================= */
@@ -790,111 +1039,6 @@ function createPipe() {
 
 }
 
-    /* =====================================================
-       TOP PIPE
-    ===================================================== */
-
-    const topPipe =
-        document.createElement(
-            "div"
-        );
-
-
-    topPipe.classList.add(
-        "pipe",
-        "topPipe"
-    );
-
-
-    topPipe.style.width =
-        "65px";
-
-
-    topPipe.style.height =
-        topHeight + "px";
-
-
-    /* =====================================================
-       BOTTOM PIPE
-    ===================================================== */
-
-    const bottomPipe =
-        document.createElement(
-            "div"
-        );
-
-
-    bottomPipe.classList.add(
-        "pipe",
-        "bottomPipe"
-    );
-
-
-    bottomPipe.style.width =
-        "65px";
-
-
-    bottomPipe.style.height =
-        bottomHeight + "px";
-
-
-    /* =====================================================
-       START POSITION
-    ===================================================== */
-
-    topPipe.style.left =
-        "500px";
-
-
-    bottomPipe.style.left =
-        "500px";
-
-
-    /* =====================================================
-       ADD TO GAME
-    ===================================================== */
-
-    game.appendChild(
-        topPipe
-    );
-
-
-    game.appendChild(
-        bottomPipe
-    );
-
-
-    /* =====================================================
-       SAVE PIPE
-    ===================================================== */
-
-    pipes.push({
-
-        top:
-            topPipe,
-
-        bottom:
-            bottomPipe,
-
-        x:
-            500,
-
-        passed:
-            false
-
-    });
-
-
-    /*
-        Remember current gap position
-        for the next pipe.
-    */
-
-    lastGapCenter =
-        newCenter;
-
-}
-
 
 /* =========================================================
    COLLISION
@@ -927,8 +1071,6 @@ function checkCollision(
 ========================================================= */
 
 async function saveScore() {
-
-    /* SCORE 0 IS NOT SAVED */
 
     if (
         score <= 0
@@ -1014,7 +1156,6 @@ async function saveScore() {
 
 
         context.drawImage(
-
             image,
 
             sourceX,
@@ -1028,7 +1169,6 @@ async function saveScore() {
 
             size,
             size
-
         );
 
 
@@ -1038,10 +1178,6 @@ async function saveScore() {
                 0.65
             );
 
-
-        /* =================================================
-           FIREBASE
-        ================================================= */
 
         const leaderboardRef =
             ref(
@@ -1249,8 +1385,6 @@ function showGameOver() {
 
 function startGame() {
 
-    /* REMOVE OLD PIPES */
-
     pipes.forEach(
         function(pipe) {
 
@@ -1287,17 +1421,6 @@ function startGame() {
 
     gameStarted =
         true;
-
-
-    /*
-        Reset pipe position.
-
-        First pipe will be centered
-        around the middle of the game.
-    */
-
-    lastGapCenter =
-        350;
 
 
     scoreDisplay.textContent =
@@ -1409,8 +1532,6 @@ async function showLeaderboard() {
         );
 
 
-        /* HIGHEST SCORE FIRST */
-
         players.sort(
             function(a, b) {
 
@@ -1422,8 +1543,6 @@ async function showLeaderboard() {
             }
         );
 
-
-        /* TOP 10 */
 
         players.forEach(
             function(player, index) {
@@ -1552,9 +1671,7 @@ function gameLoop() {
         frameCount++;
 
 
-        /* =================================================
-           GRAVITY
-        ================================================= */
+        /* GRAVITY */
 
         velocity +=
             gravity;
@@ -1568,9 +1685,7 @@ function gameLoop() {
             birdY + "px";
 
 
-        /* =================================================
-           GROUND
-        ================================================= */
+        /* GROUND */
 
         if (
             birdY >= 640
@@ -1585,9 +1700,7 @@ function gameLoop() {
         }
 
 
-        /* =================================================
-           CEILING
-        ================================================= */
+        /* CEILING */
 
         if (
             birdY <= 0
@@ -1603,9 +1716,7 @@ function gameLoop() {
         }
 
 
-        /* =================================================
-           CREATE PIPES
-        ================================================= */
+        /* CREATE PIPES */
 
         if (
             frameCount % 120 === 0
@@ -1616,9 +1727,7 @@ function gameLoop() {
         }
 
 
-        /* =================================================
-           MOVE PIPES
-        ================================================= */
+        /* MOVE PIPES */
 
         const difficulty =
             getDifficulty();
@@ -1639,9 +1748,7 @@ function gameLoop() {
                     pipe.x + "px";
 
 
-                /* =================================================
-                   SCORE
-                ================================================= */
+                /* SCORE */
 
                 if (
                     !pipe.passed &&
@@ -1661,9 +1768,7 @@ function gameLoop() {
                 }
 
 
-                /* =================================================
-                   COLLISION
-                ================================================= */
+                /* COLLISION */
 
                 const birdRect =
                     bird.getBoundingClientRect();
@@ -1699,9 +1804,7 @@ function gameLoop() {
         );
 
 
-        /* =================================================
-           REMOVE OLD PIPES
-        ================================================= */
+        /* REMOVE OLD PIPES */
 
         pipes =
             pipes.filter(
