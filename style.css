@@ -396,3 +396,19 @@ button,
 input {
     touch-action: manipulation;
 }
+.gameOverFace {
+    width: 150px;
+    height: 150px;
+
+    object-fit: cover;
+
+    border-radius: 50%;
+
+    border: 6px solid white;
+
+    margin-bottom: 15px;
+
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+
+    transform: scaleX(1);
+}
