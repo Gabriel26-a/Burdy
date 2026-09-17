@@ -62,13 +62,18 @@ let frameCount = 0;
 /* =========================
    CAMERA
 ========================= */
+/* =========================
+   CAMERA
+========================= */
 
 async function startCamera() {
 
     try {
 
-        if (!navigator.mediaDevices ||
-            !navigator.mediaDevices.getUserMedia) {
+        if (
+            !navigator.mediaDevices ||
+            !navigator.mediaDevices.getUserMedia
+        ) {
 
             cameraError.textContent =
                 "Camera is not supported on this browser.";
@@ -88,6 +93,9 @@ async function startCamera() {
 
         await camera.play();
 
+        // Make sure camera is NOT mirrored
+        camera.style.transform = "scaleX(1)";
+
         cameraError.textContent = "";
 
     } catch (error) {
@@ -96,11 +104,16 @@ async function startCamera() {
             "Please allow camera access.";
 
         console.error(error);
+
     }
+
 }
 
 startCamera();
 
+/* =========================
+   TAKE PHOTO
+========================= */
 
 /* =========================
    TAKE PHOTO
@@ -108,8 +121,10 @@ startCamera();
 
 function takePhoto() {
 
-    if (!camera.videoWidth ||
-        !camera.videoHeight) {
+    if (
+        !camera.videoWidth ||
+        !camera.videoHeight
+    ) {
 
         cameraError.textContent =
             "Camera is not ready yet.";
@@ -129,6 +144,7 @@ function takePhoto() {
         photoCanvas.getContext("2d");
 
 
+    // Capture image normally
     context.drawImage(
         camera,
         0,
@@ -144,6 +160,11 @@ function takePhoto() {
 
     photoPreview.src =
         playerPhoto;
+
+
+    // Make sure photo is NOT mirrored
+    photoPreview.style.transform =
+        "scaleX(1)";
 
 
     photoPreview.style.display =
@@ -182,9 +203,10 @@ function takePhoto() {
             });
 
         stream = null;
-    }
-}
 
+    }
+
+}
 
 /* Desktop + mobile */
 takePhotoButton.addEventListener(
