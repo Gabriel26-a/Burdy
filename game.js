@@ -720,45 +720,12 @@ game.addEventListener(
 
 function getDifficulty() {
 
-    const gap =
-        Math.max(
-            180,
-            240 - score * 2
-        );
-
-
-    const speed =
-        Math.min(
-            5,
-            2.5 + score * 0.08
-        );
-
-
-    return {
-
-        gap:
-            gap,
-
-        speed:
-            speed
-
-    };
-
-}
-
-
-/* =========================================================
-   CREATE PIPE
-========================================================= */
-
-function getDifficulty() {
-
     let gap;
     let speed;
 
     if (score < 5) {
 
-        // Madali muna sa simula
+        // Easy muna
         gap = 210;
         speed = 2.5;
 
@@ -795,6 +762,123 @@ function getDifficulty() {
 
 }
 
+
+/* =========================================================
+   CREATE PIPE
+========================================================= */
+
+function createPipe() {
+
+    const difficulty =
+        getDifficulty();
+
+    const gap =
+        difficulty.gap;
+
+
+    // Mas malaking range ng taas
+    // para hindi puro pantay ang pipes
+
+    const minTop = 60;
+
+    const maxTop =
+        550 - gap;
+
+
+    const topHeight =
+        Math.floor(
+            Math.random() *
+            (maxTop - minTop + 1)
+        ) + minTop;
+
+
+    const bottomHeight =
+        700 -
+        topHeight -
+        gap;
+
+
+    /* TOP PIPE */
+
+    const topPipe =
+        document.createElement(
+            "div"
+        );
+
+
+    topPipe.classList.add(
+        "pipe",
+        "topPipe"
+    );
+
+
+    topPipe.style.width =
+        "65px";
+
+
+    topPipe.style.height =
+        topHeight + "px";
+
+
+    /* BOTTOM PIPE */
+
+    const bottomPipe =
+        document.createElement(
+            "div"
+        );
+
+
+    bottomPipe.classList.add(
+        "pipe",
+        "bottomPipe"
+    );
+
+
+    bottomPipe.style.width =
+        "65px";
+
+
+    bottomPipe.style.height =
+        bottomHeight + "px";
+
+
+    /* START POSITION */
+
+    topPipe.style.left =
+        "500px";
+
+
+    bottomPipe.style.left =
+        "500px";
+
+
+    game.appendChild(
+        topPipe
+    );
+
+
+    game.appendChild(
+        bottomPipe
+    );
+
+
+    pipes.push({
+
+        top:
+            topPipe,
+
+        bottom:
+            bottomPipe,
+
+        x:
+            500,
+
+        passed:
+            false
+
+    });
+
+}
 /* =========================================================
    COLLISION
 ========================================================= */
