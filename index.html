@@ -1,10 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
     <title>Burdy</title>
-    <link rel="stylesheet" href="style.css">
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
 </head>
 
 <body>
@@ -12,21 +24,41 @@
     <div id="game">
 
         <!-- CAMERA SCREEN -->
+
         <div id="cameraScreen">
 
             <h1>🐦 Burdy</h1>
 
-            <p>Take your picture first!</p>
+            <p>
+                Take your picture first!
+            </p>
 
-            <video id="camera" autoplay playsinline></video>
+            <video
+                id="camera"
+                autoplay
+                playsinline
+            ></video>
 
-            <canvas id="photoCanvas"></canvas>
+            <canvas
+                id="photoCanvas"
+            ></canvas>
 
-            <button id="takePhotoButton">📸 TAKE PHOTO</button>
+            <button
+                id="takePhotoButton"
+            >
+                📸 TAKE PHOTO
+            </button>
 
-            <img id="photoPreview" alt="Your photo">
+            <img
+                id="photoPreview"
+                alt="Your photo"
+            >
 
-            <button id="retakeButton">🔄 RETAKE</button>
+            <button
+                id="retakeButton"
+            >
+                🔄 RETAKE
+            </button>
 
             <div id="nameSection">
 
@@ -37,7 +69,11 @@
                     maxlength="15"
                 >
 
-                <button id="startButton">START GAME</button>
+                <button
+                    id="startButton"
+                >
+                    START GAME
+                </button>
 
             </div>
 
@@ -46,28 +82,56 @@
         </div>
 
 
-        <!-- GAME -->
+        <!-- PLAYER -->
+
         <div id="bird">
-            <img id="birdImage" alt="Player">
+
+            <img
+                id="birdImage"
+                alt="Player"
+            >
+
         </div>
 
-        <div id="score">0</div>
+
+        <!-- SCORE -->
+
+        <div id="score">
+            0
+        </div>
 
 
         <!-- LEADERBOARD -->
+
         <div id="leaderboardScreen">
 
-            <h1>🏆 Leaderboard</h1>
+            <h1>
+                🏆 Leaderboard
+            </h1>
 
-            <div id="leaderboardList"></div>
+            <div
+                id="leaderboardList"
+            ></div>
 
-            <button id="backButton">BACK</button>
+            <button
+                id="backButton"
+            >
+                BACK
+            </button>
 
         </div>
 
     </div>
 
-    <script src="<script type="module" src="game.js"></script>"></script>
+
+    <!-- IMPORTANT:
+         type="module" is required for Firebase -->
+
+    <script
+        type="module"
+        src="game.js"
+    ></script>
 
 </body>
+
 </html>
