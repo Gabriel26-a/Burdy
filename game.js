@@ -4,9 +4,7 @@
 
 import {
     initializeApp
-} from
-    "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 
 import {
     getDatabase,
@@ -16,15 +14,12 @@ import {
     query,
     orderByChild,
     limitToLast
-} from
-    "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
-
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
 
 import {
     getAuth,
     signInAnonymously
-} from
-    "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 
 
 /* =========================================================
@@ -64,10 +59,8 @@ const firebaseConfig = {
 const firebaseApp =
     initializeApp(firebaseConfig);
 
-
 const database =
     getDatabase(firebaseApp);
-
 
 const auth =
     getAuth(firebaseApp);
@@ -121,99 +114,60 @@ async function ensureAuth() {
 const bird =
     document.getElementById("bird");
 
-
 const birdImage =
     document.getElementById("birdImage");
-
 
 const game =
     document.getElementById("game");
 
-
 const scoreDisplay =
     document.getElementById("score");
-
 
 const camera =
     document.getElementById("camera");
 
-
 const photoCanvas =
     document.getElementById("photoCanvas");
 
-
 const takePhotoButton =
-    document.getElementById(
-        "takePhotoButton"
-    );
-
+    document.getElementById("takePhotoButton");
 
 const retakeButton =
-    document.getElementById(
-        "retakeButton"
-    );
-
+    document.getElementById("retakeButton");
 
 const photoPreview =
-    document.getElementById(
-        "photoPreview"
-    );
-
+    document.getElementById("photoPreview");
 
 const nameSection =
-    document.getElementById(
-        "nameSection"
-    );
-
+    document.getElementById("nameSection");
 
 const playerNameInput =
-    document.getElementById(
-        "playerName"
-    );
-
+    document.getElementById("playerName");
 
 const startButton =
-    document.getElementById(
-        "startButton"
-    );
-
+    document.getElementById("startButton");
 
 const cameraScreen =
-    document.getElementById(
-        "cameraScreen"
-    );
-
+    document.getElementById("cameraScreen");
 
 const cameraError =
-    document.getElementById(
-        "cameraError"
-    );
-
+    document.getElementById("cameraError");
 
 const leaderboardScreen =
-    document.getElementById(
-        "leaderboardScreen"
-    );
-
+    document.getElementById("leaderboardScreen");
 
 const leaderboardList =
-    document.getElementById(
-        "leaderboardList"
-    );
-
+    document.getElementById("leaderboardList");
 
 const backButton =
-    document.getElementById(
-        "backButton"
-    );
+    document.getElementById("backButton");
 
 
 /* =========================================================
-   INITIAL PLAYER STATE
+   INITIAL STATE
 ========================================================= */
 
-bird.style.display =
-    "none";
+bird.style.display = "none";
 
 
 /* =========================================================
@@ -221,7 +175,6 @@ bird.style.display =
 ========================================================= */
 
 let playerName = "";
-
 let playerPhoto = "";
 
 let stream = null;
@@ -232,27 +185,30 @@ let stream = null;
 ========================================================= */
 
 let birdY = 300;
-
 let velocity = 0;
 
-
 const gravity = 0.5;
-
 const jumpStrength = -8;
 
-
 let gameStarted = false;
-
 let gameOver = false;
-
 
 let score = 0;
 
-
 let pipes = [];
 
-
 let frameCount = 0;
+
+
+/*
+    IMPORTANT:
+    This keeps track of the previous pipe gap.
+
+    This prevents the pipe from suddenly spawning
+    in an impossible position.
+*/
+
+let lastGapCenter = 350;
 
 
 /* =========================================================
@@ -272,7 +228,6 @@ async function startCamera() {
                 "Camera is not supported.";
 
             return;
-
         }
 
 
@@ -298,7 +253,6 @@ async function startCamera() {
 
 
         // Not mirrored
-
         camera.style.transform =
             "scaleX(1)";
 
@@ -309,9 +263,7 @@ async function startCamera() {
 
     } catch (error) {
 
-        console.error(
-            error
-        );
+        console.error(error);
 
 
         cameraError.textContent =
@@ -340,30 +292,24 @@ function takePhoto() {
             "Camera is not ready yet.";
 
         return;
-
     }
 
 
     photoCanvas.width =
         camera.videoWidth;
 
-
     photoCanvas.height =
         camera.videoHeight;
 
 
     const context =
-        photoCanvas.getContext(
-            "2d"
-        );
+        photoCanvas.getContext("2d");
 
 
     context.drawImage(
         camera,
-
         0,
         0,
-
         photoCanvas.width,
         photoCanvas.height
     );
@@ -415,16 +361,14 @@ function takePhoto() {
 
             });
 
-
         stream = null;
-
     }
 
 }
 
 
 /* =========================================================
-   TAKE PHOTO CLICK
+   TAKE PHOTO
 ========================================================= */
 
 takePhotoButton.addEventListener(
@@ -497,10 +441,6 @@ function retakePhoto() {
 }
 
 
-/* =========================================================
-   RETAKE CLICK
-========================================================= */
-
 retakeButton.addEventListener(
     "click",
     function(event) {
@@ -514,10 +454,6 @@ retakeButton.addEventListener(
     }
 );
 
-
-/* =========================================================
-   RETAKE MOBILE
-========================================================= */
 
 retakeButton.addEventListener(
     "touchend",
@@ -537,7 +473,7 @@ retakeButton.addEventListener(
 
 
 /* =========================================================
-   START PLAYER GAME
+   START PLAYER
 ========================================================= */
 
 function startPlayerGame() {
@@ -554,7 +490,6 @@ function startPlayerGame() {
             "Please enter your name.";
 
         return;
-
     }
 
 
@@ -566,7 +501,6 @@ function startPlayerGame() {
             "Please take your picture first.";
 
         return;
-
     }
 
 
@@ -609,10 +543,6 @@ startButton.addEventListener(
 );
 
 
-/* =========================================================
-   START BUTTON MOBILE
-========================================================= */
-
 startButton.addEventListener(
     "touchend",
     function(event) {
@@ -642,7 +572,6 @@ function jump() {
     ) {
 
         return;
-
     }
 
 
@@ -653,7 +582,7 @@ function jump() {
 
 
 /* =========================================================
-   KEYBOARD CONTROL
+   KEYBOARD
 ========================================================= */
 
 document.addEventListener(
@@ -675,7 +604,7 @@ document.addEventListener(
 
 
 /* =========================================================
-   GAME TAP CONTROL
+   MOBILE / MOUSE TAP
 ========================================================= */
 
 game.addEventListener(
@@ -683,16 +612,11 @@ game.addEventListener(
     function(event) {
 
         if (
-            event.target.closest(
-                "button"
-            ) ||
-            event.target.closest(
-                "input"
-            )
+            event.target.closest("button") ||
+            event.target.closest("input")
         ) {
 
             return;
-
         }
 
 
@@ -702,7 +626,6 @@ game.addEventListener(
         ) {
 
             return;
-
         }
 
 
@@ -722,42 +645,100 @@ function getDifficulty() {
 
     let gap;
     let speed;
+    let maxShift;
+
+
+    /*
+        0 - 4
+        EASY
+    */
 
     if (score < 5) {
 
-        // Easy muna
         gap = 210;
+
         speed = 2.5;
 
-    } else if (score < 10) {
-
-        // Medyo humihirap
-        gap = 195;
-        speed = 2.8;
-
-    } else if (score < 15) {
-
-        // Mas challenging
-        gap = 180;
-        speed = 3.2;
-
-    } else if (score < 25) {
-
-        // Mahirap na
-        gap = 165;
-        speed = 3.7;
-
-    } else {
-
-        // Hard
-        gap = 150;
-        speed = 4.2;
+        maxShift = 35;
 
     }
 
+
+    /*
+        5 - 9
+        MEDIUM
+    */
+
+    else if (score < 10) {
+
+        gap = 195;
+
+        speed = 2.8;
+
+        maxShift = 55;
+
+    }
+
+
+    /*
+        10 - 14
+        HARDER
+    */
+
+    else if (score < 15) {
+
+        gap = 180;
+
+        speed = 3.2;
+
+        maxShift = 75;
+
+    }
+
+
+    /*
+        15 - 24
+        HARD
+    */
+
+    else if (score < 25) {
+
+        gap = 165;
+
+        speed = 3.7;
+
+        maxShift = 95;
+
+    }
+
+
+    /*
+        25+
+        VERY HARD
+    */
+
+    else {
+
+        gap = 150;
+
+        speed = 4.2;
+
+        maxShift = 115;
+
+    }
+
+
     return {
-        gap: gap,
-        speed: speed
+
+        gap:
+            gap,
+
+        speed:
+            speed,
+
+        maxShift:
+            maxShift
+
     };
 
 }
@@ -772,24 +753,69 @@ function createPipe() {
     const difficulty =
         getDifficulty();
 
+
     const gap =
         difficulty.gap;
 
 
-    // Mas malaking range ng taas
-    // para hindi puro pantay ang pipes
+    const maxShift =
+        difficulty.maxShift;
 
-    const minTop = 60;
 
-    const maxTop =
-        550 - gap;
+    /*
+        SAFE CENTER RANGE
 
+        This keeps the gap inside the game
+        and prevents impossible starting pipes.
+    */
+
+    const minCenter =
+        180;
+
+
+    const maxCenter =
+        520;
+
+
+    /*
+        Random vertical movement
+        from the previous pipe.
+    */
+
+    const randomShift =
+        (
+            Math.random() * 2 - 1
+        ) * maxShift;
+
+
+    let newCenter =
+        lastGapCenter +
+        randomShift;
+
+
+    /*
+        Keep center inside safe range.
+    */
+
+    newCenter =
+        Math.max(
+            minCenter,
+            Math.min(
+                maxCenter,
+                newCenter
+            )
+        );
+
+
+    /*
+        Calculate pipe height.
+    */
 
     const topHeight =
-        Math.floor(
-            Math.random() *
-            (maxTop - minTop + 1)
-        ) + minTop;
+        Math.round(
+            newCenter -
+            gap / 2
+        );
 
 
     const bottomHeight =
@@ -798,7 +824,9 @@ function createPipe() {
         gap;
 
 
-    /* TOP PIPE */
+    /* =====================================================
+       TOP PIPE
+    ===================================================== */
 
     const topPipe =
         document.createElement(
@@ -820,7 +848,9 @@ function createPipe() {
         topHeight + "px";
 
 
-    /* BOTTOM PIPE */
+    /* =====================================================
+       BOTTOM PIPE
+    ===================================================== */
 
     const bottomPipe =
         document.createElement(
@@ -842,7 +872,9 @@ function createPipe() {
         bottomHeight + "px";
 
 
-    /* START POSITION */
+    /* =====================================================
+       START POSITION
+    ===================================================== */
 
     topPipe.style.left =
         "500px";
@@ -851,6 +883,10 @@ function createPipe() {
     bottomPipe.style.left =
         "500px";
 
+
+    /* =====================================================
+       ADD TO GAME
+    ===================================================== */
 
     game.appendChild(
         topPipe
@@ -861,6 +897,10 @@ function createPipe() {
         bottomPipe
     );
 
+
+    /* =====================================================
+       SAVE PIPE
+    ===================================================== */
 
     pipes.push({
 
@@ -878,7 +918,18 @@ function createPipe() {
 
     });
 
+
+    /*
+        Remember current gap position
+        for the next pipe.
+    */
+
+    lastGapCenter =
+        newCenter;
+
 }
+
+
 /* =========================================================
    COLLISION
 ========================================================= */
@@ -906,19 +957,18 @@ function checkCollision(
 
 
 /* =========================================================
-   SAVE SCORE TO FIREBASE
+   SAVE SCORE
 ========================================================= */
 
 async function saveScore() {
 
-    /* ZERO SCORE IS NOT SAVED */
+    /* SCORE 0 IS NOT SAVED */
 
     if (
         score <= 0
     ) {
 
         return;
-
     }
 
 
@@ -927,9 +977,9 @@ async function saveScore() {
         await ensureAuth();
 
 
-        /* ===============================================
-           MAKE SMALL PHOTO
-        =============================================== */
+        /* =================================================
+           SMALL PHOTO
+        ================================================= */
 
         const smallCanvas =
             document.createElement(
@@ -964,14 +1014,10 @@ async function saveScore() {
 
 
         await new Promise(
-            function(
-                resolve,
-                reject
-            ) {
+            function(resolve, reject) {
 
                 image.onload =
                     resolve;
-
 
                 image.onerror =
                     reject;
@@ -1027,9 +1073,9 @@ async function saveScore() {
             );
 
 
-        /* ===============================================
-           FIREBASE REFERENCE
-        =============================================== */
+        /* =================================================
+           FIREBASE
+        ================================================= */
 
         const leaderboardRef =
             ref(
@@ -1037,10 +1083,6 @@ async function saveScore() {
                 "leaderboard"
             );
 
-
-        /* ===============================================
-           SAVE
-        =============================================== */
 
         await push(
             leaderboardRef,
@@ -1087,7 +1129,6 @@ function endGame() {
     ) {
 
         return;
-
     }
 
 
@@ -1282,6 +1323,17 @@ function startGame() {
         true;
 
 
+    /*
+        Reset pipe position.
+
+        First pipe will be centered
+        around the middle of the game.
+    */
+
+    lastGapCenter =
+        350;
+
+
     scoreDisplay.textContent =
         "0";
 
@@ -1381,9 +1433,7 @@ async function showLeaderboard() {
 
 
         snapshot.forEach(
-            function(
-                childSnapshot
-            ) {
+            function(childSnapshot) {
 
                 players.push(
                     childSnapshot.val()
@@ -1396,10 +1446,7 @@ async function showLeaderboard() {
         /* HIGHEST SCORE FIRST */
 
         players.sort(
-            function(
-                a,
-                b
-            ) {
+            function(a, b) {
 
                 return (
                     b.score -
@@ -1410,13 +1457,10 @@ async function showLeaderboard() {
         );
 
 
-        /* DISPLAY TOP 10 */
+        /* TOP 10 */
 
         players.forEach(
-            function(
-                player,
-                index
-            ) {
+            function(player, index) {
 
                 const row =
                     document.createElement(
@@ -1450,8 +1494,7 @@ async function showLeaderboard() {
 
                 name.textContent =
                     (
-                        index +
-                        1
+                        index + 1
                     ) +
                     ". " +
                     player.name;
@@ -1543,7 +1586,9 @@ function gameLoop() {
         frameCount++;
 
 
-        /* GRAVITY */
+        /* =================================================
+           GRAVITY
+        ================================================= */
 
         velocity +=
             gravity;
@@ -1557,7 +1602,9 @@ function gameLoop() {
             birdY + "px";
 
 
-        /* GROUND */
+        /* =================================================
+           GROUND
+        ================================================= */
 
         if (
             birdY >= 640
@@ -1572,7 +1619,9 @@ function gameLoop() {
         }
 
 
-        /* CEILING */
+        /* =================================================
+           CEILING
+        ================================================= */
 
         if (
             birdY <= 0
@@ -1588,11 +1637,12 @@ function gameLoop() {
         }
 
 
-        /* CREATE PIPES */
+        /* =================================================
+           CREATE PIPES
+        ================================================= */
 
         if (
-            frameCount % 120 ===
-            0
+            frameCount % 120 === 0
         ) {
 
             createPipe();
@@ -1600,7 +1650,9 @@ function gameLoop() {
         }
 
 
-        /* MOVE PIPES */
+        /* =================================================
+           MOVE PIPES
+        ================================================= */
 
         const difficulty =
             getDifficulty();
@@ -1621,7 +1673,9 @@ function gameLoop() {
                     pipe.x + "px";
 
 
-                /* SCORE */
+                /* =================================================
+                   SCORE
+                ================================================= */
 
                 if (
                     !pipe.passed &&
@@ -1641,18 +1695,22 @@ function gameLoop() {
                 }
 
 
-                /* COLLISION */
+                /* =================================================
+                   COLLISION
+                ================================================= */
 
                 const birdRect =
                     bird.getBoundingClientRect();
 
 
                 const topRect =
-                    pipe.top.getBoundingClientRect();
+                    pipe.top
+                        .getBoundingClientRect();
 
 
                 const bottomRect =
-                    pipe.bottom.getBoundingClientRect();
+                    pipe.bottom
+                        .getBoundingClientRect();
 
 
                 if (
@@ -1675,15 +1733,16 @@ function gameLoop() {
         );
 
 
-        /* REMOVE OLD PIPES */
+        /* =================================================
+           REMOVE OLD PIPES
+        ================================================= */
 
         pipes =
             pipes.filter(
                 function(pipe) {
 
                     if (
-                        pipe.x <
-                        -100
+                        pipe.x < -100
                     ) {
 
                         pipe.top.remove();
