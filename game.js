@@ -751,117 +751,49 @@ function getDifficulty() {
    CREATE PIPE
 ========================================================= */
 
-function createPipe() {
+function getDifficulty() {
 
-    const difficulty =
-        getDifficulty();
+    let gap;
+    let speed;
 
+    if (score < 5) {
 
-    const gap =
-        difficulty.gap;
+        // Madali muna sa simula
+        gap = 210;
+        speed = 2.5;
 
+    } else if (score < 10) {
 
-    const maxTop =
-        550 - gap;
+        // Medyo humihirap
+        gap = 195;
+        speed = 2.8;
 
+    } else if (score < 15) {
 
-    const minTop =
-        80;
+        // Mas challenging
+        gap = 180;
+        speed = 3.2;
 
+    } else if (score < 25) {
 
-    const topHeight =
-        Math.floor(
-            Math.random() *
-            (
-                maxTop -
-                minTop
-            )
-        ) +
-        minTop;
+        // Mahirap na
+        gap = 165;
+        speed = 3.7;
 
+    } else {
 
-    const bottomHeight =
-        700 -
-        topHeight -
-        gap;
+        // Hard
+        gap = 150;
+        speed = 4.2;
 
+    }
 
-    const topPipe =
-        document.createElement(
-            "div"
-        );
-
-
-    topPipe.classList.add(
-        "pipe",
-        "topPipe"
-    );
-
-
-    topPipe.style.width =
-        "65px";
-
-
-    topPipe.style.height =
-        topHeight + "px";
-
-
-    const bottomPipe =
-        document.createElement(
-            "div"
-        );
-
-
-    bottomPipe.classList.add(
-        "pipe",
-        "bottomPipe"
-    );
-
-
-    bottomPipe.style.width =
-        "65px";
-
-
-    bottomPipe.style.height =
-        bottomHeight + "px";
-
-
-    topPipe.style.left =
-        "500px";
-
-
-    bottomPipe.style.left =
-        "500px";
-
-
-    game.appendChild(
-        topPipe
-    );
-
-
-    game.appendChild(
-        bottomPipe
-    );
-
-
-    pipes.push({
-
-        top:
-            topPipe,
-
-        bottom:
-            bottomPipe,
-
-        x:
-            500,
-
-        passed:
-            false
-
-    });
+    return {
+        gap: gap,
+        speed: speed
+    };
 
 }
-
 
 /* =========================================================
    COLLISION
