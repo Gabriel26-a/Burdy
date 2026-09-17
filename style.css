@@ -412,3 +412,29 @@ input {
 
     transform: scaleX(1);
 }
+#game {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+button,
+input {
+    touch-action: manipulation;
+}
+
+#camera {
+    transform: scaleX(1);
+}
+
+#photoPreview {
+    transform: scaleX(1);
+}
+
+#birdImage {
+    transform: scaleX(1);
+}
+
+.gameOverFace {
+    transform: scaleX(1);
+}
