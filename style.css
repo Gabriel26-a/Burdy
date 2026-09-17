@@ -381,6 +381,16 @@ body {
 #game {
     touch-action: manipulation;
 }
+#game {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+button,
+input {
+    touch-action: manipulation;
+}
 
 button,
 input {
