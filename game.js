@@ -24,6 +24,7 @@ const leaderboardList =
 const backButton =
     document.getElementById("backButton");
 
+
 // Hide player character until game starts
 bird.style.display = "none";
 
@@ -66,13 +67,28 @@ async function startCamera() {
 
     try {
 
+        if (!navigator.mediaDevices ||
+            !navigator.mediaDevices.getUserMedia) {
+
+            cameraError.textContent =
+                "Camera is not supported on this browser.";
+
+            return;
+        }
+
         stream =
             await navigator.mediaDevices.getUserMedia({
-                video: true,
+                video: {
+                    facingMode: "user"
+                },
                 audio: false
             });
 
         camera.srcObject = stream;
+
+        await camera.play();
+
+        cameraError.textContent = "";
 
     } catch (error) {
 
@@ -90,17 +106,28 @@ startCamera();
    TAKE PHOTO
 ========================= */
 
-takePhotoButton.addEventListener("click", function () {
+function takePhoto() {
 
-    if (!camera.videoWidth) {
+    if (!camera.videoWidth ||
+        !camera.videoHeight) {
+
+        cameraError.textContent =
+            "Camera is not ready yet.";
+
         return;
     }
 
-    photoCanvas.width = camera.videoWidth;
-    photoCanvas.height = camera.videoHeight;
+
+    photoCanvas.width =
+        camera.videoWidth;
+
+    photoCanvas.height =
+        camera.videoHeight;
+
 
     const context =
         photoCanvas.getContext("2d");
+
 
     context.drawImage(
         camera,
@@ -110,61 +137,123 @@ takePhotoButton.addEventListener("click", function () {
         photoCanvas.height
     );
 
+
     playerPhoto =
         photoCanvas.toDataURL("image/png");
 
-    photoPreview.src = playerPhoto;
 
-    photoPreview.style.display = "block";
+    photoPreview.src =
+        playerPhoto;
 
-    camera.style.display = "none";
 
-    takePhotoButton.style.display = "none";
+    photoPreview.style.display =
+        "block";
 
-    retakeButton.style.display = "block";
 
-    nameSection.style.display = "flex";
+    camera.style.display =
+        "none";
+
+
+    takePhotoButton.style.display =
+        "none";
+
+
+    retakeButton.style.display =
+        "block";
+
+
+    nameSection.style.display =
+        "flex";
+
+
+    cameraError.textContent = "";
 
 
     // Stop camera
 
     if (stream) {
 
-        stream.getTracks().forEach(track => {
-            track.stop();
-        });
+        stream
+            .getTracks()
+            .forEach(function(track) {
+
+                track.stop();
+
+            });
+
+        stream = null;
+    }
+}
+
+
+/* Desktop + mobile */
+takePhotoButton.addEventListener(
+    "click",
+    function(event) {
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+        takePhoto();
 
     }
-
-});
+);
 
 
 /* =========================
    RETAKE PHOTO
 ========================= */
 
-retakeButton.addEventListener("click", function () {
+function retakePhoto() {
 
-    photoPreview.style.display = "none";
+    photoPreview.style.display =
+        "none";
 
-    retakeButton.style.display = "none";
 
-    nameSection.style.display = "none";
+    retakeButton.style.display =
+        "none";
 
-    takePhotoButton.style.display = "block";
 
-    camera.style.display = "block";
+    nameSection.style.display =
+        "none";
+
+
+    takePhotoButton.style.display =
+        "block";
+
+
+    camera.style.display =
+        "block";
+
+
+    cameraError.textContent = "";
+
 
     startCamera();
 
-});
+}
+
+
+retakeButton.addEventListener(
+    "click",
+    function(event) {
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+        retakePhoto();
+
+    }
+);
 
 
 /* =========================
    START GAME
 ========================= */
 
-startButton.addEventListener("click", function () {
+function startPlayerGame() {
 
     playerName =
         playerNameInput.value.trim();
@@ -188,21 +277,35 @@ startButton.addEventListener("click", function () {
     }
 
 
-    // Put player's face on bird
-
-    birdImage.src = playerPhoto;
-
-    // Show player only when game starts
-    bird.style.display = "block";
-
-    // Hide camera screen
-    cameraScreen.style.display = "none";
+    birdImage.src =
+        playerPhoto;
 
 
-    // Start game
+    bird.style.display =
+        "block";
+
+
+    cameraScreen.style.display =
+        "none";
+
+
     startGame();
 
-});
+}
+
+
+startButton.addEventListener(
+    "click",
+    function(event) {
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+        startPlayerGame();
+
+    }
+);
 
 
 /* =========================
@@ -211,47 +314,61 @@ startButton.addEventListener("click", function () {
 
 function jump() {
 
-    if (!gameStarted || gameOver) {
+    if (!gameStarted ||
+        gameOver) {
+
         return;
     }
 
-    velocity = jumpStrength;
+    velocity =
+        jumpStrength;
 }
 
 
+/* =========================
+   KEYBOARD CONTROL
+========================= */
+
 document.addEventListener(
     "keydown",
-    function (event) {
+    function(event) {
 
         if (event.code === "Space") {
 
             event.preventDefault();
 
             jump();
+
         }
 
     }
 );
 
-
-EventListener(
-    "click",
-    function (event) {
-
-        if (
-            event.target.tagNamgame.adde !== "BUTTON" &&
-            event.target.tagName !== "INPUT"
-        ) {
-
-            jump();
-        }
-
-    }
-);
 
 /* =========================
-   MOBILE TOUCH CONTROL
+   DESKTOP CLICK CONTROL
 ========================= */
+
+game.addEventListener(
+    "click",
+    function(event) {
+
+        // Ignore buttons and input fields
+
+        if (
+            event.target.tagName === "BUTTON" ||
+            event.target.tagName === "INPUT"
+        ) {
+
+            return;
+        }
+
+
+        jump();
+
+    }
+);
+
 
 /* =========================
    MOBILE TOUCH CONTROL
@@ -259,24 +376,30 @@ EventListener(
 
 game.addEventListener(
     "touchstart",
-    function (event) {
+    function(event) {
 
-        // Huwag i-block ang buttons at input
+        // Buttons and input fields
+        // should work normally
+
         if (
             event.target.tagName === "BUTTON" ||
             event.target.tagName === "INPUT"
         ) {
+
             return;
         }
 
-        // Prevent scrolling habang naglalaro
+
         event.preventDefault();
 
         jump();
 
     },
-    { passive: false }
+    {
+        passive: false
+    }
 );
+
 
 /* =========================
    DIFFICULTY
@@ -290,11 +413,13 @@ function getDifficulty() {
             240 - score * 2
         );
 
+
     const speed =
         Math.min(
             5,
             2.5 + score * 0.08
         );
+
 
     return {
         gap: gap,
@@ -313,6 +438,7 @@ function createPipe() {
     const difficulty =
         getDifficulty();
 
+
     const gap =
         difficulty.gap;
 
@@ -320,7 +446,9 @@ function createPipe() {
     const maxTop =
         550 - gap;
 
-    const minTop = 80;
+
+    const minTop =
+        80;
 
 
     const topHeight =
@@ -339,12 +467,16 @@ function createPipe() {
     const topPipe =
         document.createElement("div");
 
+
     topPipe.classList.add(
         "pipe",
         "topPipe"
     );
 
-    topPipe.style.width = "65px";
+
+    topPipe.style.width =
+        "65px";
+
 
     topPipe.style.height =
         topHeight + "px";
@@ -353,20 +485,27 @@ function createPipe() {
     const bottomPipe =
         document.createElement("div");
 
+
     bottomPipe.classList.add(
         "pipe",
         "bottomPipe"
     );
 
-    bottomPipe.style.width = "65px";
+
+    bottomPipe.style.width =
+        "65px";
+
 
     bottomPipe.style.height =
         bottomHeight + "px";
 
 
-    topPipe.style.left = "500px";
+    topPipe.style.left =
+        "500px";
 
-    bottomPipe.style.left = "500px";
+
+    bottomPipe.style.left =
+        "500px";
 
 
     game.appendChild(topPipe);
@@ -377,6 +516,7 @@ function createPipe() {
     pipes.push({
 
         top: topPipe,
+
         bottom: bottomPipe,
 
         x: 500,
@@ -424,17 +564,27 @@ function endGame() {
         return;
     }
 
+
     gameOver = true;
 
     gameStarted = false;
 
+
+    bird.style.display =
+        "none";
+
+
     saveScore();
 
-    setTimeout(function () {
 
-        showGameOver();
+    setTimeout(
+        function() {
 
-    }, 300);
+            showGameOver();
+
+        },
+        300
+    );
 
 }
 
@@ -446,6 +596,7 @@ function endGame() {
 function saveScore() {
 
     // Don't save zero score
+
     if (score <= 0) {
         return;
     }
@@ -461,18 +612,25 @@ function saveScore() {
 
     leaderboard.push({
 
-        name: playerName,
+        name:
+            playerName,
 
-        photo: playerPhoto,
+        photo:
+            playerPhoto,
 
-        score: score
+        score:
+            score
 
     });
 
 
     leaderboard.sort(
-        (a, b) =>
-            b.score - a.score
+        function(a, b) {
+
+            return b.score -
+                   a.score;
+
+        }
     );
 
 
@@ -482,7 +640,9 @@ function saveScore() {
 
     localStorage.setItem(
         "burdyLeaderboard",
-        JSON.stringify(leaderboard)
+        JSON.stringify(
+            leaderboard
+        )
     );
 
 }
@@ -494,10 +654,13 @@ function saveScore() {
 
 function showGameOver() {
 
-    // Hide player character
-    bird.style.display = "none";
+    bird.style.display =
+        "none";
 
-    cameraScreen.style.display = "flex";
+
+    cameraScreen.style.display =
+        "flex";
+
 
     cameraScreen.innerHTML = `
 
@@ -507,7 +670,9 @@ function showGameOver() {
             alt="Player"
         >
 
-        <h1>GAME OVER</h1>
+        <h1>
+            GAME OVER
+        </h1>
 
         <p class="gameOverName">
             ${playerName}
@@ -528,30 +693,44 @@ function showGameOver() {
     `;
 
 
-    document
-        .getElementById("playAgainButton")
-        .addEventListener(
-            "click",
-            function () {
-
-                startGame();
-
-            }
+    const playAgainButton =
+        document.getElementById(
+            "playAgainButton"
         );
 
 
-    document
-        .getElementById(
+    const showLeaderboardButton =
+        document.getElementById(
             "showLeaderboardButton"
-        )
-        .addEventListener(
-            "click",
-            function () {
-
-                showLeaderboard();
-
-            }
         );
+
+
+    playAgainButton.addEventListener(
+        "click",
+        function(event) {
+
+            event.preventDefault();
+
+            event.stopPropagation();
+
+            startGame();
+
+        }
+    );
+
+
+    showLeaderboardButton.addEventListener(
+        "click",
+        function(event) {
+
+            event.preventDefault();
+
+            event.stopPropagation();
+
+            showLeaderboard();
+
+        }
+    );
 
 }
 
@@ -564,13 +743,15 @@ function startGame() {
 
     // Remove old pipes
 
-    pipes.forEach(function (pipe) {
+    pipes.forEach(
+        function(pipe) {
 
-        pipe.top.remove();
+            pipe.top.remove();
 
-        pipe.bottom.remove();
+            pipe.bottom.remove();
 
-    });
+        }
+    );
 
 
     pipes = [];
@@ -589,7 +770,8 @@ function startGame() {
     gameStarted = true;
 
 
-    scoreDisplay.textContent = "0";
+    scoreDisplay.textContent =
+        "0";
 
 
     bird.style.top =
@@ -599,8 +781,9 @@ function startGame() {
     birdImage.src =
         playerPhoto;
 
-    // Show player character
-    bird.style.display = "block";
+
+    bird.style.display =
+        "block";
 
 
     cameraScreen.style.display =
@@ -615,9 +798,9 @@ function startGame() {
 
 function showLeaderboard() {
 
-    // Hide game over/camera screen
     cameraScreen.style.display =
         "none";
+
 
     leaderboardScreen.style.display =
         "flex";
@@ -641,17 +824,17 @@ function showLeaderboard() {
             "<p>No scores yet.</p>";
 
         return;
-
     }
 
 
     leaderboard.forEach(
-        function (player, index) {
+        function(player, index) {
 
             const row =
                 document.createElement(
                     "div"
                 );
+
 
             row.className =
                 "leaderboardRow";
@@ -692,10 +875,16 @@ function showLeaderboard() {
 
 backButton.addEventListener(
     "click",
-    function () {
+    function(event) {
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
 
         leaderboardScreen.style.display =
             "none";
+
 
         cameraScreen.style.display =
             "flex";
@@ -717,9 +906,12 @@ function gameLoop() {
 
         /* GRAVITY */
 
-        velocity += gravity;
+        velocity +=
+            gravity;
 
-        birdY += velocity;
+
+        birdY +=
+            velocity;
 
 
         bird.style.top =
@@ -750,7 +942,9 @@ function gameLoop() {
 
         /* CREATE PIPES */
 
-        if (frameCount % 120 === 0) {
+        if (
+            frameCount % 120 === 0
+        ) {
 
             createPipe();
 
@@ -764,7 +958,7 @@ function gameLoop() {
 
 
         pipes.forEach(
-            function (pipe) {
+            function(pipe) {
 
                 pipe.x -=
                     difficulty.speed;
@@ -785,9 +979,12 @@ function gameLoop() {
                     pipe.x < 100
                 ) {
 
-                    pipe.passed = true;
+                    pipe.passed =
+                        true;
+
 
                     score++;
+
 
                     scoreDisplay.textContent =
                         score;
@@ -802,11 +999,13 @@ function gameLoop() {
 
 
                 const topRect =
-                    pipe.top.getBoundingClientRect();
+                    pipe.top
+                        .getBoundingClientRect();
 
 
                 const bottomRect =
-                    pipe.bottom.getBoundingClientRect();
+                    pipe.bottom
+                        .getBoundingClientRect();
 
 
                 if (
@@ -814,6 +1013,7 @@ function gameLoop() {
                         birdRect,
                         topRect
                     ) ||
+
                     checkCollision(
                         birdRect,
                         bottomRect
@@ -832,9 +1032,11 @@ function gameLoop() {
 
         pipes =
             pipes.filter(
-                function (pipe) {
+                function(pipe) {
 
-                    if (pipe.x < -100) {
+                    if (
+                        pipe.x < -100
+                    ) {
 
                         pipe.top.remove();
 
@@ -843,6 +1045,7 @@ function gameLoop() {
                         return false;
 
                     }
+
 
                     return true;
 
